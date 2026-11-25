@@ -4,6 +4,7 @@ import { checkAnswer, diffChars, hintFor, type CheckResult, type Seg } from '../
 import { db } from '../lib/db'
 import type { PracticeItem } from '../lib/items'
 import { addAlternative } from '../lib/practice'
+import { useT } from '../lib/i18n'
 import { useSettings } from '../lib/settings'
 import { Icon } from './Icon'
 import { Button, Chip, cx, inputCls } from './ui'
@@ -55,7 +56,7 @@ export function DiffLine({ segs, label }: { segs: Seg[]; label: string }) {
   )
 }
 
-function AccentBar({ onInsert }: { onInsert: (c: string) => void }) {
+function AccentBarImpl({ onInsert }: { onInsert: (c: string) => void }) {
   return (
     <div className="mt-2 flex flex-wrap gap-1.5">
       {ACCENTS.map((c) => (
@@ -99,6 +100,7 @@ export function PracticeCard({
   retry?: boolean
 }) {
   const s = useSettings()
+  const t = useT()
   const alts = useLiveQuery(() => db.alts.get(item.key), [item.key])
   const [value, setValue] = useState('')
   const [picked, setPicked] = useState<number[]>([])
@@ -168,17 +170,17 @@ export function PracticeCard({
     spellCheck: false,
     lang: 'es',
     placeholder: 'Escribe aquí…',
-    'aria-label': 'Your answer',
+    'aria-label': t('Your answer'),
   }
 
   return (
     <div className="space-y-4">
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Chip>{item.label}</Chip>
-          {retry && <Chip tone="amber">Second try</Chip>}
+          <Chip>{t(item.label)}</Chip>
+          {retry && <Chip tone="amber">{t('Second try')}</Chip>}
         </div>
-        {item.instr && <p className="mb-1 text-[15px] text-stone-600 dark:text-stone-300">{item.instr}</p>}
+        {item.instr && <p className="mb-1 text-[15px] text-stone-600 dark:text-stone-300">{t(item.instr)}</p>}
         {item.prompt && (
           <p className="text-[19px] leading-snug font-medium" lang="es">
             <GapText text={item.prompt} />
@@ -195,14 +197,14 @@ export function PracticeCard({
         ))}
       {item.mode === 'type' && !result && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <AccentBar onInsert={insert} />
+          <AccentBarImpl onInsert={insert} />
           {item.hints && (
             <button
               type="button"
               onClick={() => setHint((h) => h + 1)}
               className="mt-2 inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
             >
-              <Icon name="bulb" className="size-4" /> Hint
+              <Icon name="bulb" className="size-4" /> {t('Hint')}
             </button>
           )}
         </div>
@@ -272,7 +274,7 @@ export function PracticeCard({
               onChange={(e) => setReason(e.target.value)}
               onKeyDown={onKey}
               rows={2}
-              placeholder="Why? Explain the rule in a few words (optional)"
+              placeholder={t('Why? Explain the rule in a few words (optional)')}
               className={cx(inputCls, 'resize-none text-[15px]')}
             />
           )}
@@ -281,7 +283,7 @@ export function PracticeCard({
 
       {!result ? (
         <Button size="lg" onClick={check} disabled={!answerText.trim()}>
-          Check
+          {t('Check')}
         </Button>
       ) : (
         <div className="space-y-3" aria-live="polite">
@@ -293,46 +295,46 @@ export function PracticeCard({
           >
             <Icon name={good ? 'check' : 'x'} className="size-5" strokeWidth={3} />
             {overridden
-              ? 'Counted as correct — your answer is now accepted too.'
+              ? t('Counted as correct — your answer is now accepted too.')
               : result.correct
                 ? result.accentWarning
-                  ? 'Correct — mind the accents.'
-                  : 'Correct!'
+                  ? t('Correct — mind the accents.')
+                  : t('Correct!')
                 : result.accentOnly
-                  ? 'Only the accents are off (accents are required in your settings).'
-                  : 'Not quite.'}
+                  ? t('Only the accents are off (accents are required in your settings).')
+                  : t('Not quite.')}
           </div>
           {result.articleWarning && !overridden && (
-            <Note label="Gender">
-              Learn it with its article: <b lang="es">{result.best}</b>
+            <Note label={t('Gender')}>
+              {t('Learn it with its article:')} <b lang="es">{result.best}</b>
             </Note>
           )}
           {diff && (
             <div className="space-y-1 rounded-xl border border-stone-200 p-3 dark:border-stone-800">
-              <DiffLine label="You" segs={diff.you} />
-              <DiffLine label="Correct" segs={diff.exp} />
+              <DiffLine label={t('You')} segs={diff.you} />
+              <DiffLine label={t('Correct')} segs={diff.exp} />
             </div>
           )}
           {good && !overridden && result.best !== item.answers[0] && (
-            <Note label="Also">
+            <Note label={t('Also')}>
               <span lang="es">{item.answers[0]}</span>
             </Note>
           )}
-          {item.mode === 'pair' && reason.trim() && <Note label="Your reason">{reason}</Note>}
+          {item.mode === 'pair' && reason.trim() && <Note label={t('Your reason')}>{reason}</Note>}
           {item.after && (
-            <Note label="Example">
+            <Note label={t('Example')}>
               <span lang="es">{item.after}</span>
             </Note>
           )}
-          {item.explain && <Note label="Rule">{item.explain}</Note>}
+          {item.explain && <Note label={t('Rule')}>{item.explain}</Note>}
           {item.spain && (
-            <Note label="Spain · recognise only" tone="sky">
+            <Note label={t('Spain · recognise only')} tone="sky">
               <span lang="es">{item.spain}</span>
             </Note>
           )}
           {otherAnswers.length > 0 && item.mode !== 'pair' && (
             <details className="text-sm text-stone-500 dark:text-stone-400">
-              <summary className="cursor-pointer select-none">Other accepted answers ({otherAnswers.length})</summary>
+              <summary className="cursor-pointer select-none">{t('Other accepted answers ({n})', { n: otherAnswers.length })}</summary>
               <ul className="mt-1 list-disc space-y-0.5 pl-5" lang="es">
                 {otherAnswers.map((a) => (
                   <li key={a}>{a}</li>
@@ -342,11 +344,11 @@ export function PracticeCard({
           )}
           <div className="flex flex-col gap-2 pt-1">
             <Button ref={nextRef} size="lg" onClick={next}>
-              Next
+              {t('Next')}
             </Button>
             {!result.correct && !overridden && (
               <Button variant="ghost" onClick={override}>
-                I was actually right
+                {t('I was actually right')}
               </Button>
             )}
           </div>

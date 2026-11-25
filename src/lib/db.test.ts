@@ -83,3 +83,24 @@ describe('day records', () => {
     expect(fri.pos).toEqual({ day: 2, of: 2 })
   })
 })
+
+describe('backup', () => {
+  it('exports and restores everything (audio optional)', async () => {
+    const { exportData, importData } = await import('./backup')
+    await ensureDay('2026-11-23')
+    await addMistakeWithCard({ source: 'call', wrong: 'a', correct: 'b' }, '2026-11-23')
+    await db.recordings.add({ date: '2026-11-23', ts: 1, kind: 'speaking', prompt: 'p', blob: new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' }), mime: 'audio/webm', duration: 2, redo: false })
+    const withAudio = JSON.stringify(await exportData(true))
+    const withoutAudio = JSON.stringify(await exportData(false))
+    await db.delete()
+    await db.open()
+    const counts = await importData(withAudio)
+    expect(counts).toMatchObject({ days: 1, cards: 1, mistakes: 1, recordings: 1 })
+    const rec = (await db.recordings.toArray())[0]
+    expect(new Uint8Array(await rec.blob.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]))
+    // a backup without audio keeps the recordings that are already on the device
+    await importData(withoutAudio)
+    expect(await db.recordings.count()).toBe(1)
+    await expect(importData('{"nope":1}')).rejects.toThrow('not a Paso Diario backup')
+  })
+})

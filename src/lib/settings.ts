@@ -9,6 +9,9 @@ export interface WeekdayPlan {
 }
 
 export interface Settings {
+  /** Interface language. */
+  uiLang: 'en' | 'es'
+  /** Language of translation prompts and vocabulary glosses. */
   promptLang: 'nl' | 'en'
   accentStrict: boolean
   theme: 'system' | 'light' | 'dark'
@@ -23,6 +26,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  uiLang: 'en',
   promptLang: 'en',
   accentStrict: false,
   theme: 'system',

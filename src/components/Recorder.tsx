@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fmtDuration } from '../lib/dates'
+import { useT } from '../lib/i18n'
 import { canRecord, speechCtor, startRecording, startTranscript, type RecordingResult } from '../lib/recorder'
 import { Icon } from './Icon'
 import { cx } from './ui'
@@ -19,13 +20,14 @@ export function Recorder({
   onSaved,
   transcript,
   size = 'lg',
-  label = 'Tap to record',
+  label,
 }: {
   onSaved: (r: RecordingResult & { transcript?: string }) => Promise<void> | void
   transcript: boolean
   size?: 'lg' | 'sm'
   label?: string
 }) {
+  const t = useT()
   const [state, setState] = useState<'idle' | 'starting' | 'rec' | 'saving'>('idle')
   const [secs, setSecs] = useState(0)
   const [live, setLive] = useState({ final: '', interim: '' })
@@ -49,7 +51,7 @@ export function Recorder({
   )
 
   if (!canRecord()) {
-    return <p className="text-sm text-stone-600 dark:text-stone-300">Recording isn’t supported in this browser. Try Chrome or Safari.</p>
+    return <p className="text-sm text-stone-600 dark:text-stone-300">{t('Recording isn’t supported in this browser. Try Chrome or Safari.')}</p>
   }
 
   const start = async () => {
@@ -59,7 +61,7 @@ export function Recorder({
     try {
       recRef.current = await startRecording()
     } catch {
-      setErr('Microphone access was blocked. Allow the microphone for this site in your browser settings and try again.')
+      setErr(t('Microphone access was blocked. Allow the microphone for this site in your browser settings and try again.'))
       setState('idle')
       return
     }
@@ -68,7 +70,7 @@ export function Recorder({
     if (transcript) {
       trRef.current = startTranscript(
         (final, interim) => setLive({ final, interim }),
-        (m) => setTErr(m),
+        (m) => setTErr(t(m)),
       )
     }
     setState('rec')
@@ -93,7 +95,7 @@ export function Recorder({
         type="button"
         onClick={recording ? stop : start}
         disabled={state === 'starting' || state === 'saving'}
-        aria-label={recording ? 'Stop recording' : 'Start recording'}
+        aria-label={recording ? t('Stop recording') : t('Start recording')}
         className={cx(
           'flex items-center justify-center rounded-full text-white shadow-sm transition-transform active:scale-95',
           big ? 'size-20' : 'size-12',
@@ -103,14 +105,14 @@ export function Recorder({
         <Icon name={recording ? 'stop' : 'mic'} className={big ? 'size-8' : 'size-5'} />
       </button>
       <p className="text-sm text-stone-500 tabular-nums dark:text-stone-400">
-        {recording ? `Recording · ${fmtDuration(secs)} — tap to stop` : state === 'saving' ? 'Saving…' : label}
+        {recording ? t('Recording · {time} — tap to stop', { time: fmtDuration(secs) }) : state === 'saving' ? t('Saving…') : (label ?? t('Tap to record'))}
       </p>
       {transcript && recording && (live.final || live.interim) && (
         <p className="w-full rounded-xl bg-stone-100 px-3 py-2 text-[15px] dark:bg-stone-800" lang="es">
           {live.final} <span className="text-stone-400">{live.interim}</span>
         </p>
       )}
-      {transcript && !speechCtor() && big && <p className="text-xs text-stone-400">Live transcript isn’t available in this browser (works in Chrome / Safari).</p>}
+      {transcript && !speechCtor() && big && <p className="text-xs text-stone-400">{t('Live transcript isn’t available in this browser (works in Chrome / Safari).')}</p>}
       {tErr && <p className="text-xs text-amber-700 dark:text-amber-400">{tErr}</p>}
       {err && <p className="text-sm text-rose-700 dark:text-rose-400">{err}</p>}
     </div>

@@ -8,10 +8,12 @@ import { exerciseItem, exercisePrompt } from '../../lib/items'
 import { loadContext } from '../../lib/plan'
 import { recordDrill } from '../../lib/practice'
 import { buildDrillQueue } from '../../lib/select'
+import { useT } from '../../lib/i18n'
 import { useSettings } from '../../lib/settings'
 
 export function Drills({ day, onFinish, topics }: { day: DayRecord; onFinish: () => void; topics?: TopicId[] }) {
   const s = useSettings()
+  const t = useT()
   const [queue, setQueue] = useState<Exercise[] | null>(null)
   const [idx, setIdx] = useState(0)
   const [score, setScore] = useState({ right: 0, total: 0 })
@@ -50,19 +52,19 @@ export function Drills({ day, onFinish, topics }: { day: DayRecord; onFinish: ()
     const pct = score.total ? Math.round((score.right / score.total) * 100) : 0
     return (
       <Card className="space-y-4 text-center">
-        <p className="text-sm text-stone-500 dark:text-stone-400">Round complete</p>
+        <p className="text-sm text-stone-500 dark:text-stone-400">{t('Round complete')}</p>
         <p className="text-4xl font-semibold tabular-nums">
           {score.right}/{score.total}
         </p>
         <p className="text-[15px] text-stone-600 dark:text-stone-300">
-          {pct >= 85 ? '¡Muy bien! Solid.' : pct >= 60 ? 'Good work — your mistakes are now review cards.' : 'Tough round. Your mistakes go into tomorrow’s review.'}
+          {pct >= 85 ? t('¡Muy bien! Solid.') : pct >= 60 ? t('Good work — your mistakes are now review cards.') : t('Tough round. Your mistakes go into tomorrow’s review.')}
         </p>
         <div className="flex flex-col gap-2">
           <Button size="lg" variant="success" icon="check" onClick={onFinish}>
-            {topics ? 'Done' : 'Finish block'}
+            {topics ? t('Done') : t('Finish block')}
           </Button>
           <Button size="lg" variant="secondary" onClick={() => void loadMore(8, queue)}>
-            Keep going (+8)
+            {t('Keep going (+8)')}
           </Button>
         </div>
       </Card>
@@ -75,7 +77,7 @@ export function Drills({ day, onFinish, topics }: { day: DayRecord; onFinish: ()
         <span className="tabular-nums">
           {idx + 1} / {queue.length}
         </span>
-        <Chip tone={cur.topic === day.topic ? 'sky' : 'stone'}>{topicShort(cur.topic)}</Chip>
+        <Chip tone={cur.topic === day.topic ? 'sky' : 'stone'}>{t(topicShort(cur.topic))}</Chip>
       </div>
       <Card>
         <PracticeCard key={`${cur.id}-${idx}`} item={exerciseItem(cur, s.promptLang)} onNext={onNext} />

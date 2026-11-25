@@ -6,6 +6,7 @@ import { THEMES, THEME_NAME } from '../../data/vocab/themes'
 import type { VocabItem, VocabTheme } from '../../data/types'
 import { db, type DayRecord } from '../../lib/db'
 import { vocabItem } from '../../lib/items'
+import { useT } from '../../lib/i18n'
 import { useSettings } from '../../lib/settings'
 import { GRADE, NEW_SRS, schedule } from '../../lib/srs'
 
@@ -16,6 +17,7 @@ interface Entry {
 
 export function Vocab({ day, onFinish }: { day: DayRecord; onFinish: () => void }) {
   const s = useSettings()
+  const t = useT()
   const [theme, setTheme] = useState<VocabTheme>(day.theme)
   const [queue, setQueue] = useState<Entry[] | null>(null)
   const [idx, setIdx] = useState(0)
@@ -66,19 +68,19 @@ export function Vocab({ day, onFinish }: { day: DayRecord; onFinish: () => void 
 
   const themePicker = (
     <div className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
-      {THEMES.map((t) => (
+      {THEMES.map((th) => (
         <button
-          key={t.id}
+          key={th.id}
           type="button"
-          onClick={() => setTheme(t.id)}
+          onClick={() => setTheme(th.id)}
           className={cx(
             'shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium',
-            t.id === theme
+            th.id === theme
               ? 'border-stone-900 bg-stone-900 text-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900'
               : 'border-stone-300 text-stone-600 dark:border-stone-700 dark:text-stone-300',
           )}
         >
-          {t.name}
+          {t(th.name)}
         </button>
       ))}
     </div>
@@ -91,7 +93,7 @@ export function Vocab({ day, onFinish }: { day: DayRecord; onFinish: () => void 
         <Card className="space-y-4">
           {learned.length ? (
             <>
-              <p className="text-center text-sm text-stone-500 dark:text-stone-400">New in your deck · {THEME_NAME[theme]}</p>
+              <p className="text-center text-sm text-stone-500 dark:text-stone-400">{t('New in your deck · {theme}', { theme: t(THEME_NAME[theme]) })}</p>
               <ul className="divide-y divide-stone-100 dark:divide-stone-800">
                 {learned.map(({ v, firstTry }) => (
                   <li key={v.id} className="flex items-baseline justify-between gap-3 py-2">
@@ -104,20 +106,20 @@ export function Vocab({ day, onFinish }: { day: DayRecord; onFinish: () => void 
                   </li>
                 ))}
               </ul>
-              <p className="text-center text-sm text-stone-500 dark:text-stone-400">These come back in tomorrow’s review.</p>
+              <p className="text-center text-sm text-stone-500 dark:text-stone-400">{t('These come back in tomorrow’s review.')}</p>
             </>
           ) : (
             <p className="text-center text-[15px] text-stone-600 dark:text-stone-300">
-              {remaining === 0 ? `All ${THEME_NAME[theme]} words are already in your deck. Pick another theme above.` : 'No new words loaded.'}
+              {remaining === 0 ? t('All {theme} words are already in your deck. Pick another theme above.', { theme: t(THEME_NAME[theme]) }) : t('No new words loaded.')}
             </p>
           )}
           <div className="flex flex-col gap-2">
             <Button size="lg" variant="success" icon="check" onClick={onFinish}>
-              Finish block
+              {t('Finish block')}
             </Button>
             {remaining > 0 && (
               <Button size="lg" variant="secondary" onClick={() => void load(theme, 5)}>
-                5 more words
+                {t('5 more words')}
               </Button>
             )}
           </div>
@@ -133,7 +135,7 @@ export function Vocab({ day, onFinish }: { day: DayRecord; onFinish: () => void 
         <span className="tabular-nums">
           {Math.min(idx + 1, queue.length)} / {queue.length}
         </span>
-        <Chip tone="green">{THEME_NAME[theme]}</Chip>
+        <Chip tone="green">{t(THEME_NAME[theme])}</Chip>
       </div>
       <Card>
         <PracticeCard key={`${cur.v.id}-${idx}`} item={vocabItem(cur.v, s.promptLang)} retry={cur.tries > 0} onNext={onNext} />

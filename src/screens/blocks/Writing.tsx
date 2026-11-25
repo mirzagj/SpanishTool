@@ -8,10 +8,12 @@ import { copyText } from '../../lib/clipboard'
 import { buildCorrectionPrompt, countSentences, parseCorrections, type ImportedError } from '../../lib/correction'
 import { db, type DayRecord } from '../../lib/db'
 import { addMistakeWithCard } from '../../lib/practice'
+import { useT } from '../../lib/i18n'
 import { useSettings } from '../../lib/settings'
 
 export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => void }) {
   const s = useSettings()
+  const t = useT()
   const prompt = writingPromptFor(day.topic, day.date)
   // null = loaded, no draft yet (undefined means still loading)
   const existing = useLiveQuery(() => db.writings.where('date').equals(day.date).first().then((r) => r ?? null), [day.date])
@@ -50,7 +52,7 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
 
   const read = () => {
     const r = parseCorrections(reply)
-    setProblem(r.problem ?? (r.errors.length ? '' : 'No errors in the list — nice work! Nothing to import.'))
+    setProblem(r.problem ? t(r.problem) : r.errors.length ? '' : t('No errors in the list — nice work! Nothing to import.'))
     setParsed(r.errors.map((e) => ({ ...e, topic: e.topic ?? day.topic, on: true })))
     setImported(null)
   }
@@ -71,13 +73,13 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
     <div className="space-y-4">
       <Card>
         <div className="mb-2 flex flex-wrap gap-2">
-          <Chip tone="sky">{topicShort(day.topic)}</Chip>
-          <Chip>4–6 sentences</Chip>
+          <Chip tone="sky">{t(topicShort(day.topic))}</Chip>
+          <Chip>{t('4–6 sentences')}</Chip>
         </div>
         <p className="text-[17px] leading-snug font-medium" lang="es">
           {prompt.text}
         </p>
-        <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">Use: {prompt.target}</p>
+        <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{t('Use:')} {prompt.target}</p>
       </Card>
 
       <div>
@@ -89,47 +91,47 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
           spellCheck={false}
           placeholder="Escribe tu texto aquí…"
           className={cx(inputCls, 'resize-y leading-relaxed')}
-          aria-label="Your text"
+          aria-label={t('Your text')}
         />
         <div className="mt-1 flex justify-between text-sm text-stone-500 dark:text-stone-400">
           <span className={cx(n >= 4 && n <= 6 && 'font-medium text-emerald-600')}>
-            {n} sentence{n === 1 ? '' : 's'}
+            {t(n === 1 ? '{n} sentence' : '{n} sentences', { n })}
           </span>
-          <span>Saved automatically</span>
+          <span>{t('Saved automatically')}</span>
         </div>
       </div>
 
       <Button size="lg" icon="copy" onClick={copy} disabled={n < 1}>
-        Copy correction prompt
+        {t('Copy correction prompt')}
       </Button>
       {copied === 'ok' && (
         <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-          Copied. Paste it into any AI chat (Claude, ChatGPT…), then paste the reply below.
+          {t('Copied. Paste it into any AI chat (Claude, ChatGPT…), then paste the reply below.')}
         </p>
       )}
       {copied === 'fail' && (
         <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-          Your browser blocked copying. Long-press to copy the text manually.
+          {t('Your browser blocked copying. Long-press to copy the text manually.')}
         </p>
       )}
 
-      <SectionTitle>Import the corrections</SectionTitle>
+      <SectionTitle>{t('Import the corrections')}</SectionTitle>
       <textarea
         value={reply}
         onChange={(e) => setReply(e.target.value)}
         rows={4}
-        placeholder="Paste the AI reply here (the whole reply, or just the JSON block)"
+        placeholder={t('Paste the AI reply here (the whole reply, or just the JSON block)')}
         className={cx(inputCls, 'resize-y text-[15px]')}
-        aria-label="AI reply"
+        aria-label={t('AI reply')}
       />
       <Button variant="secondary" className="w-full" onClick={read} disabled={!reply.trim()}>
-        Read errors
+        {t('Read errors')}
       </Button>
       {problem && <p className="text-sm text-stone-600 dark:text-stone-300">{problem}</p>}
 
       {parsed && parsed.length > 0 && (
         <Card className="space-y-3">
-          <p className="text-sm text-stone-500 dark:text-stone-400">Untick anything you don’t want as a review card.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400">{t('Untick anything you don’t want as a review card.')}</p>
           {parsed.map((e, i) => (
             <label key={i} className="flex gap-3">
               <input
@@ -146,23 +148,23 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
                   {e.correction}
                 </span>
                 {e.explanation && <span className="block text-sm text-stone-600 dark:text-stone-300">{e.explanation}</span>}
-                {e.topic && <Chip className="mt-1">{topicShort(e.topic)}</Chip>}
+                {e.topic && <Chip className="mt-1">{t(topicShort(e.topic))}</Chip>}
               </span>
             </label>
           ))}
           <Button className="w-full" icon="download" onClick={doImport} disabled={!parsed.some((e) => e.on)}>
-            Add {parsed.filter((e) => e.on).length} to mistake log + review
+            {t('Add {n} to mistake log + review', { n: parsed.filter((e) => e.on).length })}
           </Button>
         </Card>
       )}
       {imported !== null && (
         <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-          <Icon name="check" className="size-4" /> {imported} review card{imported === 1 ? '' : 's'} created. They show up from tomorrow.
+          <Icon name="check" className="size-4" /> {t(imported === 1 ? '{n} review card created. It shows up from tomorrow.' : '{n} review cards created. They show up from tomorrow.', { n: imported })}
         </p>
       )}
 
       <Button size="lg" variant="success" icon="check" onClick={onFinish} disabled={n < 1}>
-        Finish block
+        {t('Finish block')}
       </Button>
     </div>
   )

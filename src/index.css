@@ -29,3 +29,21 @@ button {
 details > summary::-webkit-details-marker {
   display: none;
 }
+
+/* Chart tokens (validated palette: blue / orange / aqua), stepped separately for dark mode. */
+:root {
+  --series-1: #257de0;
+  --series-2: #f47230;
+  --series-3: #00b894;
+  --grid: #ecebe9;
+  --grid-strong: #a8a29e;
+  --chart-surface: #ffffff;
+}
+:root.dark {
+  --series-1: #338ced;
+  --series-2: #e76624;
+  --series-3: #00a888;
+  --grid: #2e2a27;
+  --grid-strong: #57534e;
+  --chart-surface: #1c1917;
+}

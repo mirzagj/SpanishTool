@@ -8,10 +8,13 @@ import { fmtLong } from '../lib/dates'
 import { LIGHT_BLOCKS, db } from '../lib/db'
 import { go, useToday } from '../lib/hooks'
 import { activeBlocks, dayStatus, ensureDay, setBlockDone, setLight, streaks } from '../lib/plan'
-import { DAY_TYPE_LABEL } from '../lib/settings'
+import { useT } from '../lib/i18n'
+import { DAY_TYPE_LABEL, useSettings } from '../lib/settings'
 
 export function Today() {
   const today = useToday()
+  const t = useT()
+  const { uiLang } = useSettings()
   useEffect(() => {
     void ensureDay(today)
   }, [today])
@@ -34,22 +37,22 @@ export function Today() {
       <header className="mb-4 pt-2">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm text-stone-500 dark:text-stone-400">{fmtLong(today)}</p>
+            <p className="text-sm text-stone-500 dark:text-stone-400">{fmtLong(today, uiLang)}</p>
             <h1 className="text-2xl font-semibold tracking-tight">Hoy</h1>
           </div>
           <div
             className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-            title="Current streak"
+            title={t('Current streak')}
           >
             <Icon name="flame" className="size-4" /> {streak}
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Chip tone={day.dayType === 'topic' ? 'sky' : day.dayType === 'structure' ? 'amber' : 'stone'}>{DAY_TYPE_LABEL[day.dayType]}</Chip>
-          <span className="text-[15px] font-medium">{topicName(day.topic)}</span>
+          <Chip tone={day.dayType === 'topic' ? 'sky' : day.dayType === 'structure' ? 'amber' : 'stone'}>{t(DAY_TYPE_LABEL[day.dayType])}</Chip>
+          <span className="text-[15px] font-medium">{t(topicName(day.topic))}</span>
           {day.pos && (
             <span className="text-sm text-stone-500 dark:text-stone-400">
-              · day {day.pos.day} of {day.pos.of}
+              {t('· day {d} of {n}', { d: day.pos.day, n: day.pos.of })}
             </span>
           )}
         </div>
@@ -58,28 +61,28 @@ export function Today() {
       <Card>
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-[15px] font-medium">
-            {status === 'full' ? '¡Día completo! 🎉' : status === 'light' && day.light ? 'Light day done ✓' : `${doneMin} of ${total} min`}
+            {status === 'full' ? '¡Día completo! 🎉' : status === 'light' && day.light ? t('Light day done ✓') : t('{a} of {b} min', { a: doneMin, b: total })}
           </span>
           <span className="text-sm text-stone-500 dark:text-stone-400">
-            {blocks.filter((b) => b.done).length}/{blocks.length} blocks
+            {t('{a}/{b} blocks', { a: blocks.filter((b) => b.done).length, b: blocks.length })}
           </span>
         </div>
         <ProgressBar value={total ? doneMin / total : 0} />
         <div className="mt-4 border-t border-stone-100 pt-3 dark:border-stone-800">
-          <Toggle checked={day.light} onChange={(v) => setLight(today, v)} label="Light day" description="20-minute minimum: review + drills. Still counts (light green)." />
+          <Toggle checked={day.light} onChange={(v) => setLight(today, v)} label={t('Light day')} description={t('20-minute minimum: review + drills. Still counts (light green).')} />
         </div>
       </Card>
 
-      <SectionTitle>Today's plan · {total} min</SectionTitle>
+      <SectionTitle>{t("Today's plan · {n} min", { n: total })}</SectionTitle>
       <ol className="space-y-2">
         {day.blocks.map((b, i) => {
           const skipped = day.light && !LIGHT_BLOCKS.includes(b.kind)
           if (skipped) return null
-          const m = blockMeta(b.kind, day, due)
+          const m = blockMeta(b.kind, day, due, t)
           return (
             <li key={b.kind}>
               <Card className={cx('flex items-center gap-3 !p-3', b.done && 'bg-stone-50 dark:bg-stone-900/60')}>
-                <Checkbox checked={b.done} onChange={(v) => setBlockDone(today, b.kind, v)} label={`${m.title} done`} />
+                <Checkbox checked={b.done} onChange={(v) => setBlockDone(today, b.kind, v)} label={t('{x} done', { x: m.title })} />
                 <button type="button" onClick={() => go(`do/${b.kind}`)} className="min-w-0 flex-1 text-left">
                   <span className={cx('flex items-center gap-1.5 text-[15px] font-medium', b.done && 'text-stone-500 line-through decoration-stone-300 dark:decoration-stone-600')}>
                     <span className="text-xs text-stone-400 tabular-nums">{i + 1}</span>
@@ -91,7 +94,7 @@ export function Today() {
                 <button
                   type="button"
                   onClick={() => go(`do/${b.kind}`)}
-                  aria-label={`Start ${m.title}`}
+                  aria-label={t('Start {x}', { x: m.title })}
                   className={cx(
                     'flex size-10 shrink-0 items-center justify-center rounded-full',
                     b.done ? 'bg-stone-100 text-stone-500 dark:bg-stone-800' : 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900',
@@ -104,9 +107,9 @@ export function Today() {
           )
         })}
       </ol>
-      {day.light && <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">Light day: vocabulary, writing and speaking are skipped today.</p>}
+      {day.light && <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{t('Light day: vocabulary, writing and speaking are skipped today.')}</p>}
 
-      <SectionTitle>Bonus · outside the 45 min</SectionTitle>
+      <SectionTitle>{t('Bonus · outside the daily plan')}</SectionTitle>
       <Card className="!p-3">
         <div className="grid grid-cols-3 gap-2">
           {(
@@ -123,11 +126,11 @@ export function Today() {
               className="flex flex-col items-center gap-1 rounded-xl py-3 text-sm font-medium hover:bg-stone-50 dark:hover:bg-stone-800"
             >
               <Icon name={icon} className="size-5 text-stone-500" />
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
-        {bonusMin > 0 && <p className="mt-1 text-center text-sm text-stone-500 dark:text-stone-400">{bonusMin} bonus min logged today</p>}
+        {bonusMin > 0 && <p className="mt-1 text-center text-sm text-stone-500 dark:text-stone-400">{t('{n} bonus min logged today', { n: bonusMin })}</p>}
       </Card>
     </div>
   )

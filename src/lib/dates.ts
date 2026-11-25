@@ -45,14 +45,27 @@ export const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export const WEEKDAYS_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-export function fmtLong(s: string): string {
+export const WEEKDAYS_SHORT_ES = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
+export const WEEKDAYS_LONG_ES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+export const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+export function fmtLong(s: string, lang: 'en' | 'es' = 'en'): string {
   const d = parse(s)
+  if (lang === 'es') {
+    const w = WEEKDAYS_LONG_ES[weekdayIdx(s)]
+    return `${w.charAt(0).toUpperCase()}${w.slice(1)} ${d.getDate()} de ${MONTHS_ES[d.getMonth()]}`
+  }
   return `${WEEKDAYS_LONG[weekdayIdx(s)]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-export function fmtShort(s: string): string {
+export function fmtShort(s: string, lang: 'en' | 'es' = 'en'): string {
   const d = parse(s)
-  return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`
+  return `${d.getDate()} ${(lang === 'es' ? MONTHS_ES : MONTHS)[d.getMonth()].slice(0, 3)}`
+}
+
+export const monthName = (m: number, lang: 'en' | 'es' = 'en') => {
+  const n = (lang === 'es' ? MONTHS_ES : MONTHS)[m]
+  return n.charAt(0).toUpperCase() + n.slice(1)
 }
 
 /** 6x7 grid of date strings for a month view (Monday first), plus whether each is in the month. */

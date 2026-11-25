@@ -5,6 +5,7 @@ import { cx } from './components/ui'
 import type { TopicId } from './data/types'
 import { BLOCKS, db, type BlockKind } from './lib/db'
 import { go, useRoute } from './lib/hooks'
+import { translate } from './lib/i18n'
 import { SettingsContext, withDefaults, type Settings } from './lib/settings'
 import { Bonus } from './screens/Bonus'
 import { Calendar } from './screens/Calendar'
@@ -89,7 +90,7 @@ export default function App() {
                   )}
                 >
                   <Icon name={t.icon} className="size-6" strokeWidth={active ? 2.2 : 1.8} />
-                  {t.label}
+                  {translate(settings.uiLang, t.label)}
                 </button>
               )
             })}

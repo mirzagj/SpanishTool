@@ -3,6 +3,7 @@ import { PracticeCard, type PracticeResult } from '../../components/Practice'
 import { Button, Card, Chip } from '../../components/ui'
 import { db, type Card as SrsCard, type DayRecord } from '../../lib/db'
 import { cardItem, type PracticeItem } from '../../lib/items'
+import { useT } from '../../lib/i18n'
 import { useSettings } from '../../lib/settings'
 import { GRADE, schedule } from '../../lib/srs'
 
@@ -23,6 +24,7 @@ const shuffle = <T,>(a: T[]) => {
 
 export function Review({ day, onFinish }: { day: DayRecord; onFinish: () => void }) {
   const s = useSettings()
+  const t = useT()
   const [queue, setQueue] = useState<Entry[] | null>(null)
   const [idx, setIdx] = useState(0)
   const [score, setScore] = useState({ right: 0, total: 0 })
@@ -88,26 +90,26 @@ export function Review({ day, onFinish }: { day: DayRecord; onFinish: () => void
         {nothing ? (
           <>
             <p className="text-3xl">🌿</p>
-            <p className="text-[17px] font-medium">Nothing due today</p>
+            <p className="text-[17px] font-medium">{t('Nothing due today')}</p>
             <p className="text-[15px] text-stone-600 dark:text-stone-300">
-              Your review deck fills up from your drill mistakes, new vocabulary, writing corrections and calls.
+              {t('Your review deck fills up from your drill mistakes, new vocabulary, writing corrections and calls.')}
             </p>
           </>
         ) : (
           <>
-            <p className="text-sm text-stone-500 dark:text-stone-400">{ahead ? 'Practised ahead' : 'Review complete'}</p>
+            <p className="text-sm text-stone-500 dark:text-stone-400">{ahead ? t('Practised ahead') : t('Review complete')}</p>
             <p className="text-4xl font-semibold tabular-nums">
               {score.right}/{score.total}
             </p>
-            <p className="text-[15px] text-stone-600 dark:text-stone-300">Missed cards come back tomorrow; the rest are spaced further apart.</p>
+            <p className="text-[15px] text-stone-600 dark:text-stone-300">{t('Missed cards come back tomorrow; the rest are spaced further apart.')}</p>
           </>
         )}
         <div className="flex flex-col gap-2">
           <Button size="lg" variant="success" icon="check" onClick={onFinish}>
-            Finish block
+            {t('Finish block')}
           </Button>
           <Button size="lg" variant="secondary" onClick={practiseAhead}>
-            Practise ahead (next 10 cards)
+            {t('Practise ahead (next 10 cards)')}
           </Button>
         </div>
       </Card>
@@ -118,9 +120,9 @@ export function Review({ day, onFinish }: { day: DayRecord; onFinish: () => void
   return (
     <div>
       <div className="mb-3 flex items-center justify-between text-sm text-stone-500 dark:text-stone-400">
-        <span className="tabular-nums">{left} left</span>
+        <span className="tabular-nums">{t('{n} left', { n: left })}</span>
         <Chip tone={cur.card.kind === 'vocab' ? 'green' : cur.card.kind === 'custom' ? 'amber' : 'sky'}>
-          {cur.card.kind === 'vocab' ? 'Vocabulary' : cur.card.kind === 'custom' ? 'Your mistake' : 'Grammar'}
+          {cur.card.kind === 'vocab' ? t('Vocabulary') : cur.card.kind === 'custom' ? t('Your mistake') : t('Grammar')}
         </Chip>
       </div>
       <Card>

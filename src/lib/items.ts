@@ -109,7 +109,7 @@ export function customItem(c: Card): PracticeItem {
 export function cardItem(c: Card, lang: 'nl' | 'en'): PracticeItem | null {
   if (c.kind === 'exercise') {
     const e = c.refId ? EXERCISE_BY_ID[c.refId] : undefined
-    return e ? { ...exerciseItem(e, lang), label: `Review · ${exerciseItem(e, lang).label}` } : null
+    return e ? exerciseItem(e, lang) : null
   }
   if (c.kind === 'vocab') {
     const v = c.refId ? VOCAB_BY_ID[c.refId] : undefined

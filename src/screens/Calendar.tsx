@@ -5,11 +5,12 @@ import { Card, Chip, PageHeader, cx } from '../components/ui'
 import { topicName } from '../data/topics'
 import { THEME_NAME } from '../data/vocab/themes'
 import { blockMeta } from '../lib/blocks'
-import { MONTHS, WEEKDAYS_SHORT, fmtLong, monthGrid, parse } from '../lib/dates'
+import { WEEKDAYS_SHORT, WEEKDAYS_SHORT_ES, fmtLong, monthGrid, monthName, parse } from '../lib/dates'
 import { db, type DayRecord } from '../lib/db'
 import { useToday } from '../lib/hooks'
 import { dayStatus, minutesPractised, streaks, type DayStatus } from '../lib/plan'
-import { DAY_TYPE_LABEL } from '../lib/settings'
+import { useT } from '../lib/i18n'
+import { DAY_TYPE_LABEL, useSettings } from '../lib/settings'
 
 export const STATUS_CLS: Record<DayStatus, string> = {
   full: 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950',
@@ -26,8 +27,10 @@ const STATUS_LABEL: Record<DayStatus, string> = {
 
 export function Calendar() {
   const today = useToday()
-  const t = parse(today)
-  const [ym, setYm] = useState({ y: t.getFullYear(), m: t.getMonth() })
+  const t = useT()
+  const { uiLang } = useSettings()
+  const td = parse(today)
+  const [ym, setYm] = useState({ y: td.getFullYear(), m: td.getMonth() })
   const [sel, setSel] = useState<string>(today)
   const days = useLiveQuery(() => db.days.toArray(), [])
   const byDate = useMemo(() => Object.fromEntries((days ?? []).map((d) => [d.date, d])) as Record<string, DayRecord>, [days])
@@ -44,27 +47,27 @@ export function Calendar() {
 
   return (
     <div>
-      <PageHeader title="Calendar" />
+      <PageHeader title={t('Calendar')} />
       <div className="mb-4 grid grid-cols-3 gap-2">
-        <Stat label="Current streak" value={st.current} unit="days" />
-        <Stat label="Longest streak" value={st.longest} unit="days" />
-        <Stat label="This month" value={practisedThisMonth} unit={`${completeThisMonth} complete`} />
+        <Stat label={t('Current streak')} value={st.current} unit={t('days')} />
+        <Stat label={t('Longest streak')} value={st.longest} unit={t('days')} />
+        <Stat label={t('Practised this month')} value={practisedThisMonth} unit={t('{n} complete', { n: completeThisMonth })} />
       </div>
 
       <Card>
         <div className="mb-3 flex items-center justify-between">
-          <button type="button" onClick={() => shift(-1)} className="rounded-full p-2 hover:bg-stone-100 dark:hover:bg-stone-800" aria-label="Previous month">
+          <button type="button" onClick={() => shift(-1)} className="rounded-full p-2 hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={t('Previous month')}>
             <Icon name="left" />
           </button>
           <h2 className="text-[17px] font-semibold">
-            {MONTHS[ym.m]} {ym.y}
+            {monthName(ym.m, uiLang)} {ym.y}
           </h2>
-          <button type="button" onClick={() => shift(1)} className="rounded-full p-2 hover:bg-stone-100 dark:hover:bg-stone-800" aria-label="Next month">
+          <button type="button" onClick={() => shift(1)} className="rounded-full p-2 hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={t('Next month')}>
             <Icon name="right" />
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1.5 text-center">
-          {WEEKDAYS_SHORT.map((w) => (
+          {(uiLang === 'es' ? WEEKDAYS_SHORT_ES : WEEKDAYS_SHORT).map((w) => (
             <div key={w} className="pb-1 text-xs font-medium text-stone-400">
               {w.slice(0, 2)}
             </div>
@@ -77,7 +80,7 @@ export function Calendar() {
                 key={date}
                 type="button"
                 onClick={() => setSel(date)}
-                aria-label={`${fmtLong(date)}: ${STATUS_LABEL[s]}`}
+                aria-label={`${fmtLong(date, uiLang)}: ${t(STATUS_LABEL[s])}`}
                 className={cx(
                   'aspect-square rounded-lg text-sm font-medium tabular-nums transition-transform',
                   STATUS_CLS[s],
@@ -95,7 +98,7 @@ export function Calendar() {
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-stone-500 dark:text-stone-400">
           {(['full', 'light', 'partial', 'none'] as DayStatus[]).map((s) => (
             <span key={s} className="flex items-center gap-1.5">
-              <span className={cx('size-3 rounded', STATUS_CLS[s])} /> {STATUS_LABEL[s]}
+              <span className={cx('size-3 rounded', STATUS_CLS[s])} /> {t(STATUS_LABEL[s])}
             </span>
           ))}
         </div>
@@ -120,6 +123,8 @@ function Stat({ label, value, unit }: { label: string; value: number; unit: stri
 }
 
 function DayDetail({ date, day }: { date: string; day?: DayRecord }) {
+  const t = useT()
+  const { uiLang } = useSettings()
   const attempts = useLiveQuery(() => db.attempts.where('date').equals(date).toArray(), [date])
   const mistakes = useLiveQuery(() => db.mistakes.where('date').equals(date).count(), [date])
   const logs = useLiveQuery(() => db.logs.where('date').equals(date).toArray(), [date])
@@ -131,23 +136,23 @@ function DayDetail({ date, day }: { date: string; day?: DayRecord }) {
   return (
     <Card className="mt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{fmtLong(date)}</h3>
-        <span className={cx('rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CLS[status])}>{STATUS_LABEL[status]}</span>
+        <h3 className="font-semibold">{fmtLong(date, uiLang)}</h3>
+        <span className={cx('rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_CLS[status])}>{t(STATUS_LABEL[status])}</span>
       </div>
       {!day ? (
-        <p className="text-sm text-stone-500 dark:text-stone-400">No practice recorded.</p>
+        <p className="text-sm text-stone-500 dark:text-stone-400">{t('No practice recorded.')}</p>
       ) : (
         <div className="space-y-3 text-[15px]">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Chip>{DAY_TYPE_LABEL[day.dayType]}</Chip>
-            <span>{topicName(day.topic)}</span>
+            <Chip>{t(DAY_TYPE_LABEL[day.dayType])}</Chip>
+            <span>{t(topicName(day.topic))}</span>
           </div>
           <ul className="space-y-1">
             {day.blocks.map((b) => (
               <li key={b.kind} className="flex items-center gap-2">
                 <Icon name={b.done ? 'check' : 'x'} className={cx('size-4', b.done ? 'text-emerald-600' : 'text-stone-300 dark:text-stone-600')} strokeWidth={3} />
-                <span className={cx(!b.done && 'text-stone-400 dark:text-stone-500')}>{blockMeta(b.kind, day).title}</span>
-                {b.kind === 'vocab' && <span className="text-sm text-stone-400">· {THEME_NAME[day.theme]}</span>}
+                <span className={cx(!b.done && 'text-stone-400 dark:text-stone-500')}>{blockMeta(b.kind, day, undefined, t).title}</span>
+                {b.kind === 'vocab' && <span className="text-sm text-stone-400">· {t(THEME_NAME[day.theme])}</span>}
                 <span className="ml-auto text-sm text-stone-500 tabular-nums dark:text-stone-400">
                   {b.seconds >= 60 ? `${Math.round(b.seconds / 60)} min` : b.done ? `${b.minutes} min` : ''}
                 </span>
@@ -155,15 +160,13 @@ function DayDetail({ date, day }: { date: string; day?: DayRecord }) {
             ))}
           </ul>
           <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-3 text-sm text-stone-600 dark:border-stone-800 dark:text-stone-300">
-            <Chip>{Math.round(minutesPractised(day))} min practised</Chip>
+            <Chip>{t('{n} min practised', { n: Math.round(minutesPractised(day)) })}</Chip>
             {!!attempts?.length && (
-              <Chip>
-                {right}/{attempts.length} answers right
-              </Chip>
+              <Chip>{t('{a}/{b} answers right', { a: right, b: attempts.length })}</Chip>
             )}
-            {!!mistakes && <Chip tone="rose">{mistakes} mistakes logged</Chip>}
-            {!!writings && <Chip>{writings} text written</Chip>}
-            {!!recs && <Chip>{recs} recordings</Chip>}
+            {!!mistakes && <Chip tone="rose">{t('{n} mistakes logged', { n: mistakes })}</Chip>}
+            {!!writings && <Chip>{t('Text written')}</Chip>}
+            {!!recs && <Chip>{t('{n} recordings', { n: recs })}</Chip>}
           </div>
         </div>
       )}
