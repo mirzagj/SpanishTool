@@ -73,9 +73,9 @@ export function Session({ kind }: { kind: BlockKind }) {
           <Button variant="ghost" className="w-full" onClick={() => setBlockDone(date, kind, false)}>
             Block marked done · undo
           </Button>
-        ) : (
-          <Button variant="secondary" size="lg" icon="check" onClick={finish}>
-            Mark block done
+        ) : kind === 'writing' || kind === 'speaking' ? null : (
+          <Button variant="ghost" className="w-full" icon="check" onClick={finish}>
+            Mark block done &amp; go back
           </Button>
         )}
       </div>
