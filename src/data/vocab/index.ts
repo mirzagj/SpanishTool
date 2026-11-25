@@ -12,3 +12,32 @@ export const VOCAB_BY_THEME = VOCAB.reduce(
   },
   {} as Record<VocabTheme, VocabItem[]>,
 )
+
+/**
+ * Glosses split into meanings: "well / so" → ["well", "so"]. Qualifiers in brackets are kept
+ * ("to save (money)" ≠ "to save (a shot)"), so only real synonyms match.
+ */
+const meanings = (g: string) =>
+  g
+    .toLowerCase()
+    .replace(/’/g, "'")
+    .split(/\s*[/;,]\s*/)
+    .map((m) => m.trim())
+    .filter((m) => m.length > 1)
+
+const BY_MEANING = new Map<string, VocabItem[]>()
+for (const v of VOCAB) {
+  for (const m of new Set([...meanings(v.en).map((x) => `en:${x}`), ...meanings(v.nl).map((x) => `nl:${x}`)])) {
+    BY_MEANING.set(m, [...(BY_MEANING.get(m) ?? []), v])
+  }
+}
+
+/** Other words from the deck with the same meaning (e.g. bueno ↔ pues for "well"). */
+export function synonymsFor(v: VocabItem): string[] {
+  const out = new Set<string>()
+  for (const m of [...meanings(v.en).map((x) => `en:${x}`), ...meanings(v.nl).map((x) => `nl:${x}`)]) {
+    for (const o of BY_MEANING.get(m) ?? []) if (o.id !== v.id) [o.es, ...o.alts].forEach((w) => out.add(w))
+  }
+  for (const w of [v.es, ...v.alts]) out.delete(w)
+  return [...out]
+}

@@ -51,7 +51,21 @@ function eqFlexible(u: string, a: string, pronouns = true): boolean {
   return false
 }
 
+export type Verdict = 'correct' | 'almost' | 'wrong'
+/** What was lenient about an answer (also used by the mistake analysis). */
+export type CheckFlag = 'accent' | 'article' | 'spelling' | 'synonym' | 'regional'
+
+export interface CheckNote {
+  kind: 'spelling' | 'synonym' | 'regional'
+  /** what you typed */
+  from: string
+  /** what the answer has */
+  to: string
+}
+
 export interface CheckResult {
+  verdict: Verdict
+  /** verdict === 'correct' */
   correct: boolean
   /** Matched except for accents and accents are optional. */
   accentWarning: boolean
@@ -61,27 +75,183 @@ export interface CheckResult {
   articleWarning: boolean
   /** The accepted answer closest to what was typed (for feedback / diff). */
   best: string
+  notes: CheckNote[]
+  flags: CheckFlag[]
 }
 
 export interface CheckOptions {
   accentStrict: boolean
   /** Vocabulary: accept a missing article with a warning. */
   articleLenient?: boolean
+  /** Other words that also fit (vocabulary synonyms); accepted with a note. */
+  synonyms?: string[]
+  /**
+   * 'grammar' (default): spelling slips get partial credit, but changed endings stay wrong
+   * (they carry tense / person). 'vocab': any small slip gets partial credit.
+   * 'exact': no partial credit (unscramble, choose-and-explain).
+   */
+  mode?: 'grammar' | 'vocab' | 'exact'
+}
+
+/**
+ * Regional / everyday synonyms: Mexican form first. Either form is accepted;
+ * a note mentions the form used in the answer. Gendered pairs are listed with articles.
+ */
+const REGIONAL: string[][] = [
+  ['el carro', 'el coche', 'el auto'],
+  ['un carro', 'un coche', 'un auto'],
+  ['carro', 'coche', 'auto'],
+  ['el celular', 'el móvil', 'el teléfono'],
+  ['celular', 'móvil', 'teléfono'],
+  ['la computadora', 'el ordenador', 'la compu'],
+  ['una computadora', 'un ordenador'],
+  ['computadora', 'ordenador', 'compu'],
+  ['la laptop', 'el portátil'],
+  ['el camión', 'el autobús', 'el bus'],
+  ['camión', 'autobús'],
+  ['el boleto', 'el billete'],
+  ['boleto', 'billete'],
+  ['el departamento', 'el piso', 'el apartamento'],
+  ['departamento', 'apartamento'],
+  ['jugo', 'zumo'],
+  ['los lentes', 'las gafas'],
+  ['lentes', 'gafas'],
+  ['alberca', 'piscina'],
+  ['papás', 'padres'],
+  ['enojado', 'enfadado'],
+  ['enojada', 'enfadada'],
+  ['enojados', 'enfadados'],
+  ['la recámara', 'el dormitorio', 'la habitación', 'el cuarto'],
+  ['recámara', 'dormitorio', 'habitación', 'cuarto'],
+  ['el refri', 'el refrigerador', 'la nevera'],
+  ['chamarra', 'chaqueta'],
+  ['mesero', 'camarero'],
+  ['mesera', 'camarera'],
+  ['manejar', 'conducir'],
+  ['estacionar', 'aparcar'],
+  ['rentar', 'alquilar'],
+  ['platicar', 'charlar'],
+  ['platicando', 'charlando'],
+  ['ahorita', 'ahora'],
+  ['la chamba', 'el trabajo'],
+  ['chamba', 'trabajo'],
+  ['la lana', 'el dinero'],
+  ['tal vez', 'quizás', 'quizá', 'a lo mejor'],
+  ['en la mañana', 'por la mañana'],
+  ['en la tarde', 'por la tarde'],
+  ['en la noche', 'por la noche'],
+  ['ayer en la noche', 'anoche', 'ayer por la noche'],
+  ['sombrilla', 'paraguas'],
+  ['la película', 'la peli'],
+]
+
+const REGIONAL_INDEX = REGIONAL.flatMap((g, gi) => g.map((p, mi) => ({ p: normalize(p, false), gi, mi, orig: p })))
+  .sort((a, b) => b.p.length - a.p.length)
+
+/** Replace regional synonyms by a group token; returns the members found (in order). */
+function canonRegional(s: string): { text: string; found: { gi: number; word: string }[] } {
+  let text = ` ${s} `
+  const found: { gi: number; word: string; pos: number }[] = []
+  for (const { p, gi, orig } of REGIONAL_INDEX) {
+    let i = text.indexOf(` ${p} `)
+    while (i >= 0) {
+      found.push({ gi, word: orig, pos: i })
+      text = `${text.slice(0, i)} \u0000${gi} ${text.slice(i + p.length + 2)}`
+      i = text.indexOf(` ${p} `)
+    }
+  }
+  return { text: text.trim(), found: found.sort((a, b) => a.pos - b.pos).map(({ gi, word }) => ({ gi, word })) }
+}
+
+/** Sounds-the-same key: catches b/v, s/z/c, ll/y, g/j, silent h. */
+export function phoneticKey(w: string): string {
+  return stripAccents(w)
+    .replace(/ch/g, '\u0001')
+    .replace(/h/g, '')
+    .replace(/qu([ei])/g, 'k$1')
+    .replace(/gu([ei])/g, '\u0002$1')
+    .replace(/g([ei])/g, 'j$1')
+    .replace(/\u0002/g, 'g')
+    .replace(/c([ei])/g, 's$1')
+    .replace(/\u0001/g, 'ch')
+    .replace(/c(?!h)/g, 'k')
+    .replace(/ll/g, 'y')
+    .replace(/v/g, 'b')
+    .replace(/z/g, 's')
+}
+
+/** Optimal string alignment distance (Levenshtein + adjacent swaps). */
+export function osa(a: string, b: string): number {
+  const m = a.length
+  const n = b.length
+  const d: number[][] = Array.from({ length: m + 1 }, (_, i) => [i, ...new Array(n).fill(0)])
+  for (let j = 0; j <= n; j++) d[0][j] = j
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1)
+    }
+  }
+  return d[m][n]
+}
+
+const isSwap = (a: string, b: string) => a.length === b.length && a !== b && osa(a, b) === 1 && levenshtein(a, b) === 2
+
+/** The difference is only in the last two letters (where Spanish keeps tense / person / gender). */
+function endingOnly(a: string, b: string): boolean {
+  let p = 0
+  while (p < a.length && p < b.length && a[p] === b[p]) p++
+  return p >= a.length - 2 && p >= b.length - 2
+}
+
+/** A small slip in one word (not a different form). */
+function isSlip(w: string, target: string, mode: 'grammar' | 'vocab', single: boolean): boolean {
+  if (w === target) return true
+  if (target.length >= 2 && phoneticKey(w) === phoneticKey(target)) return true
+  if (target.length < 4) return false
+  if (isSwap(w, target) && !endingOnly(w, target)) return true
+  if (mode === 'grammar' && single) return false
+  const limit = target.length >= 9 ? 2 : 1
+  if (osa(w, target) > limit) return false
+  return mode === 'vocab' || !endingOnly(w, target)
+}
+
+function nearMiss(u: string, a: string, mode: 'grammar' | 'vocab'): CheckNote[] | null {
+  const uw = u.split(' ')
+  const aw = a.split(' ')
+  if (uw.length !== aw.length) return null
+  const diffs = aw.map((_, i) => i).filter((i) => uw[i] !== aw[i])
+  if (!diffs.length || diffs.length > (aw.length >= 8 ? 2 : 1)) return null
+  for (const i of diffs) if (!isSlip(uw[i], aw[i], mode, aw.length === 1)) return null
+  return diffs.map((i) => ({ kind: 'spelling' as const, from: uw[i], to: aw[i] }))
+}
+
+/** Pairs to try: as typed, and with a subject pronoun added / left out. */
+function variants(u: string, a: string): [string, string][] {
+  const out: [string, string][] = [[u, a]]
+  const su = stripSubject(u)
+  if (su !== null) out.push([su, a])
+  const sa = stripSubject(a)
+  if (sa !== null) out.push([u, sa])
+  return out
 }
 
 export function checkAnswer(input: string, answers: string[], opts: CheckOptions): CheckResult {
-  const res: CheckResult = { correct: false, accentWarning: false, accentOnly: false, articleWarning: false, best: answers[0] ?? '' }
+  const mode = opts.mode ?? 'grammar'
+  const base: CheckResult = { verdict: 'wrong', correct: false, accentWarning: false, accentOnly: false, articleWarning: false, best: answers[0] ?? '', notes: [], flags: [] }
+  const ok = (r: Partial<CheckResult>): CheckResult => ({ ...base, verdict: 'correct', correct: true, ...r })
   const strictU = normalize(input, true)
   const lenU = normalize(input, false)
-  if (!strictU) return res
+  if (!strictU) return base
 
   for (const a of answers) {
-    if (eqFlexible(strictU, normalize(a, true), !opts.articleLenient)) return { ...res, correct: true, best: a }
+    if (eqFlexible(strictU, normalize(a, true), !opts.articleLenient)) return ok({ best: a })
   }
   for (const a of answers) {
     if (eqFlexible(lenU, normalize(a, false), !opts.articleLenient)) {
-      if (opts.accentStrict) return { ...res, accentOnly: true, best: a }
-      return { ...res, correct: true, accentWarning: true, best: a }
+      if (opts.accentStrict) return { ...base, accentOnly: true, best: a, flags: ['accent'] }
+      return ok({ accentWarning: true, best: a, flags: ['accent'] })
     }
   }
   if (opts.articleLenient) {
@@ -89,12 +259,54 @@ export function checkAnswer(input: string, answers: string[], opts: CheckOptions
       const bare = stripArticle(normalize(a, false))
       if (bare && bare === lenU) {
         const accentsOk = stripArticle(normalize(a, true)) === strictU
-        if (!accentsOk && opts.accentStrict) return { ...res, accentOnly: true, best: a }
-        return { ...res, correct: true, articleWarning: true, accentWarning: !accentsOk, best: a }
+        if (!accentsOk && opts.accentStrict) return { ...base, accentOnly: true, best: a, flags: ['accent'] }
+        return ok({ articleWarning: true, accentWarning: !accentsOk, best: a, flags: accentsOk ? ['article'] : ['article', 'accent'] })
       }
     }
   }
-  // closest answer for feedback
+  if (mode === 'exact') return { ...base, best: closest(lenU, answers) }
+
+  // another word that also fits (vocabulary)
+  for (const syn of opts.synonyms ?? []) {
+    const sn = normalize(syn, false)
+    if (sn === lenU || stripArticle(sn) === lenU) return ok({ best: answers[0], notes: [{ kind: 'synonym', from: input.trim(), to: answers[0] }], flags: ['synonym'] })
+  }
+
+  // regional synonyms (coche = carro …)
+  const cu = canonRegional(lenU)
+  for (const a of answers) {
+    const ca = canonRegional(normalize(a, false))
+    if (cu.found.length && eqFlexible(cu.text, ca.text)) {
+      const notes: CheckNote[] = []
+      cu.found.forEach((f) => {
+        const other = ca.found.find((x) => x.gi === f.gi)
+        if (other && other.word !== f.word) {
+          // "el móvil" / "el celular" → "móvil" / "celular" (keep articles only when they differ)
+          const [fa, ...fr] = f.word.split(' ')
+          const [oa, ...or] = other.word.split(' ')
+          const same = fr.length && or.length && fa === oa
+          notes.push({ kind: 'regional', from: same ? fr.join(' ') : f.word, to: same ? or.join(' ') : other.word })
+        }
+      })
+      return ok({ best: a, notes, flags: ['regional'] })
+    }
+  }
+
+  // small slips: partial credit
+  for (const a of answers) {
+    const ca = canonRegional(normalize(a, false)).text
+    for (const [u, x] of variants(cu.text, ca)) {
+      const notes = nearMiss(u, x, mode)
+      if (notes) {
+        const named = notes.map((n) => ({ ...n, from: n.from.replace(/\u0000\d+/g, '…'), to: n.to.replace(/\u0000\d+/g, '…') }))
+        return { ...base, verdict: 'almost', best: a, notes: named, flags: ['spelling'] }
+      }
+    }
+  }
+  return { ...base, best: closest(lenU, answers) }
+}
+
+function closest(lenU: string, answers: string[]): string {
   let best = answers[0] ?? ''
   let bestD = Infinity
   for (const a of answers) {
@@ -104,7 +316,7 @@ export function checkAnswer(input: string, answers: string[], opts: CheckOptions
       best = a
     }
   }
-  return { ...res, best }
+  return best
 }
 
 export function levenshtein(a: string, b: string): number {

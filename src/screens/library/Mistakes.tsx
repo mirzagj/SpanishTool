@@ -108,6 +108,7 @@ function MistakeRow({ m }: { m: Mistake }) {
           <span>{fmtShort(m.date, uiLang)}</span>
           <Chip>{t(SOURCES.find((s) => s.id === m.source)?.label ?? m.source)}</Chip>
           {m.topic && <Chip tone="sky">{t(topicShort(m.topic))}</Chip>}
+          {m.slip && <Chip tone="amber">{t('small slip')}</Chip>}
           <button type="button" onClick={remove} className="ml-auto rounded p-1 hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={t('Delete')}>
             <Icon name="trash" className="size-4" />
           </button>

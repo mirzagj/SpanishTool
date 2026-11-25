@@ -25,11 +25,21 @@ async function upsertMistakeCard(id: string, fields: Omit<Card, 'id' | 'ef' | 'i
   }
 }
 
-export async function recordDrill(e: Exercise, opts: { correct: boolean; answer: string; prompt: string; today: string }) {
-  const { correct, answer, prompt, today } = opts
+export const SCORE = { correct: 1, almost: 0.5, wrong: 0 } as const
+
+export async function recordDrill(
+  e: Exercise,
+  opts: { verdict: 'correct' | 'almost' | 'wrong'; flags?: string[]; answer: string; prompt: string; today: string },
+) {
+  const { verdict, answer, prompt, today } = opts
+  const correct = verdict === 'correct'
   await db.transaction('rw', db.attempts, db.mistakes, db.cards, async () => {
-    await db.attempts.add({ date: today, ts: Date.now(), itemId: e.id, topic: e.topic, source: 'drill', correct, answer })
-    if (!correct) {
+    await db.attempts.add({ date: today, ts: Date.now(), itemId: e.id, topic: e.topic, source: 'drill', correct, answer, score: SCORE[verdict], flags: opts.flags })
+    if (verdict === 'almost') {
+      // logged so the analysis can see your spelling slips, but no review card
+      await db.mistakes.add({ date: today, ts: Date.now(), source: 'drill', topic: e.topic, prompt, wrong: answer, correct: e.answers[0], explain: e.explain, slip: true })
+    }
+    if (verdict === 'wrong') {
       const cardId = `ex:${e.id}`
       await db.mistakes.add({
         date: today,

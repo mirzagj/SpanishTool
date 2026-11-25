@@ -7,6 +7,7 @@ import { WEEKDAYS_LONG } from './dates'
 import { translate } from './i18n'
 import { ES } from './i18n-es'
 import { DAY_TYPE_LABEL } from './settings'
+import { CATEGORY_HINT, CATEGORY_LABEL, LEVEL_LABEL } from './analysis'
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -37,6 +38,10 @@ describe('Spanish interface', () => {
       ...THEMES.map((t) => t.name),
       ...Object.values(DAY_TYPE_LABEL),
       ...WEEKDAYS_LONG,
+      ...Object.values(CATEGORY_LABEL),
+      ...Object.values(CATEGORY_HINT),
+      ...Object.values(LEVEL_LABEL),
+      'improving', 'getting worse', 'steady',
       'Fill the gap', 'Translate', 'Rewrite', 'Unscramble', 'Choose & explain', 'Vocabulary',
       'From a series', 'From your call', 'From your writing', 'Your mistake',
       'Type the missing word(s).', 'Translate into (Mexican) Spanish.', 'Tap the words in the right order.', 'Choose, and say why.',

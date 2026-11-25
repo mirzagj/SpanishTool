@@ -51,18 +51,18 @@ export function Vocab({ day, onFinish }: { day: DayRecord; onFinish: () => void 
 
   const onNext = async (r: PracticeResult) => {
     const v = cur.v
-    await db.attempts.add({ date: day.date, ts: Date.now(), itemId: v.id, source: 'vocab', correct: r.correct, answer: r.answer })
+    await db.attempts.add({ date: day.date, ts: Date.now(), itemId: v.id, source: 'vocab', correct: r.correct, answer: r.answer, score: r.verdict === 'correct' ? 1 : r.verdict === 'almost' ? 0.5 : 0, flags: r.flags })
     if (cur.tries === 0) {
       // first encounter: the word enters the spaced-repetition deck
-      const q = !r.correct ? GRADE.wrong : r.hintsUsed > 0 ? GRADE.hard : GRADE.good
+      const q = r.verdict === 'wrong' ? GRADE.wrong : r.verdict === 'almost' || r.hintsUsed > 0 ? GRADE.hard : GRADE.good
       const id = `vo:${v.id}`
       if (!(await db.cards.get(id))) {
         await db.cards.put({ id, kind: 'vocab', refId: v.id, source: 'vocab', theme: v.theme, ...schedule(NEW_SRS(day.date), q, day.date), created: Date.now() })
       }
-      setLearned((l) => [...l, { v, firstTry: r.correct }])
+      setLearned((l) => [...l, { v, firstTry: r.verdict !== 'wrong' }])
     }
     // keep producing the word until you get it right (max 3 tries)
-    if (!r.correct && cur.tries < 2) setQueue((q) => [...q!, { v, tries: cur.tries + 1 }])
+    if (r.verdict === 'wrong' && cur.tries < 2) setQueue((q) => [...q!, { v, tries: cur.tries + 1 }])
     setIdx((i) => i + 1)
   }
 

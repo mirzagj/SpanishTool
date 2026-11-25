@@ -99,3 +99,17 @@ describe('vocabulary', () => {
     }
   })
 })
+
+import { synonymsFor } from './vocab'
+
+describe('vocabulary synonyms', () => {
+  const find = (es: string) => VOCAB.find((v) => v.es === es)!
+  it('links words with the same meaning', () => {
+    expect(synonymsFor(find('bueno'))).toContain('pues')
+    expect(synonymsFor(find('tal vez'))).toEqual(expect.arrayContaining(['a lo mejor', 'quizás']))
+  })
+  it('keeps qualified meanings apart', () => {
+    expect(synonymsFor(find('ahorrar'))).not.toContain('guardar')
+    expect(synonymsFor(find('atajar'))).not.toContain('ahorrar')
+  })
+})

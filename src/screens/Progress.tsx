@@ -1,14 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { FocusCard, MissedWords, MistakeTypes, TopicLevels } from '../components/Analysis'
 import { DataTable, Legend, LineChart, SERIES, SegmentBar, StackedColumns } from '../components/charts'
-import { Card, Chip, PageHeader, SectionTitle, cx } from '../components/ui'
-import { TOPICS, topicShort } from '../data/topics'
-import type { TopicId } from '../data/types'
+import { Card, PageHeader, SectionTitle } from '../components/ui'
+import { topicShort } from '../data/topics'
 import { VOCAB } from '../data/vocab'
-import { fmtShort } from '../lib/dates'
-import { db } from '../lib/db'
-import { go, useToday } from '../lib/hooks'
-import { dayStatus, streaks, topicAccuracy } from '../lib/plan'
+import { analyse } from '../lib/analysis'
+import { addDays, fmtShort } from '../lib/dates'
+import { db, scoreOf } from '../lib/db'
+import { useToday } from '../lib/hooks'
+import { dayStatus, streaks } from '../lib/plan'
 import { useT } from '../lib/i18n'
 import { totalMinutes, useSettings } from '../lib/settings'
 import { isMature } from '../lib/srs'
@@ -32,14 +33,12 @@ export function Progress() {
   const days = useLiveQuery(() => db.days.toArray(), [])
   const logs = useLiveQuery(() => db.logs.toArray(), [])
   const cards = useLiveQuery(() => db.cards.toArray(), [])
-  const [picked, setPicked] = useState<TopicId[] | null>(null)
-
-  const acc = useMemo(() => topicAccuracy(attempts ?? []), [attempts])
-  const practised = TOPICS.filter((t) => (acc[t.id]?.n ?? 0) >= 4)
-  // the (up to) three lowest topics, and only when they are actually below 85%
-  const weakest = [...practised].sort((a, b) => acc[a.id].acc - acc[b.id].acc).filter((t) => acc[t.id].acc < 0.85).slice(0, 3)
-  const weakIds = new Set(weakest.map((t) => t.id))
-  const shown: TopicId[] = picked ?? weakest.slice(0, 2).map((t) => t.id)
+  const mistakes = useLiveQuery(() => db.mistakes.toArray(), [])
+  const analysis = useMemo(() => {
+    const since = addDays(today, -60)
+    return analyse((attempts ?? []).filter((a) => a.date >= since), mistakes ?? [])
+  }, [attempts, mistakes, today])
+  const shown = analysis.focus.slice(0, 2).map((f) => f.topic)
 
   if (!attempts || !days || !logs || !cards) return null
 
@@ -65,13 +64,7 @@ export function Progress() {
   const listenMin = logs.filter((l) => l.type === 'listening').reduce((a, l) => a + l.minutes, 0)
   const readMin = logs.filter((l) => l.type === 'reading').reduce((a, l) => a + l.minutes, 0)
   const graded = attempts.filter((a) => a.source !== 'vocab')
-  const overallAcc = graded.length ? Math.round((graded.filter((a) => a.correct).length / graded.length) * 100) : null
-
-  const toggle = (tp: TopicId) => {
-    const cur = shown
-    const next = cur.includes(tp) ? cur.filter((x) => x !== tp) : [...cur, tp].slice(-2)
-    setPicked(next)
-  }
+  const overallAcc = graded.length ? Math.round((graded.reduce((s, a) => s + scoreOf(a), 0) / graded.length) * 100) : null
 
   return (
     <div>
@@ -85,47 +78,24 @@ export function Progress() {
         <Tile value={listenMin + readMin} label={t('bonus min')} sub={`🎧 ${listenMin} · 📖 ${readMin}`} />
       </div>
 
+      <SectionTitle>{t('What to work on next')}</SectionTitle>
+      <FocusCard a={analysis} />
+
+      <SectionTitle>{t('Your level per topic')}</SectionTitle>
+      <TopicLevels a={analysis} />
+
+      <SectionTitle>{t('Your most common mistakes · last 60 days')}</SectionTitle>
+      <MistakeTypes categories={analysis.categories} />
+
+      <SectionTitle>{t('Words you keep missing')}</SectionTitle>
+      <MissedWords a={analysis} />
+
       <SectionTitle>{t('Accuracy over time')}</SectionTitle>
       <Card>
         <Legend items={lineSeries.map((l) => ({ label: l.label, color: l.color, line: true }))} />
         <LineChart labels={wLabels} series={lineSeries} />
-        <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t('Weekly share of correct answers in drills and review. Tap topics below to compare (max 2).')}</p>
+        <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t('Weekly share of correct answers in drills and review, with your two focus topics.')}</p>
         <DataTable head={[t('Week'), ...lineSeries.map((l) => l.label)]} rows={wLabels.map((w, i) => [w, ...lineSeries.map((l) => (l.values[i] === null ? '—' : `${l.values[i]}%`))])} />
-      </Card>
-
-      <SectionTitle>{t('By topic · last 30 answers')}</SectionTitle>
-      <Card className="!p-2">
-        <ul>
-          {TOPICS.map((tp) => {
-            const a = acc[tp.id]
-            const pct = a && a.n ? Math.round(a.acc * 100) : null
-            const on = shown.includes(tp.id)
-            return (
-              <li key={tp.id}>
-                <button
-                  type="button"
-                  onClick={() => (pct === null ? go(`library/grammar/${tp.id}`) : toggle(tp.id))}
-                  className={cx('flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left', on && 'bg-stone-100 dark:bg-stone-800')}
-                >
-                  <span className="w-32 shrink-0 truncate text-sm">{t(tp.short)}</span>
-                  <span className="relative h-3 flex-1">
-                    {pct !== null && (
-                      <span
-                        className="absolute inset-y-0 left-0 rounded-r"
-                        style={{ width: `${Math.max(2, pct)}%`, background: on ? SERIES[shown.indexOf(tp.id) + 1] : 'var(--series-1)', opacity: on ? 1 : 0.55 }}
-                      />
-                    )}
-                  </span>
-                  <span className="w-12 text-right text-sm tabular-nums">{pct === null ? <span className="text-stone-400">—</span> : `${pct}%`}</span>
-                  {weakIds.has(tp.id) ? <Chip tone="rose">{t('weak')}</Chip> : <span className="w-[42px]" />}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-        {weakest.length > 0 && (
-          <p className="px-2 pt-1 pb-1 text-xs text-stone-500 dark:text-stone-400">{t('Weak topics automatically get more drills on mixed and topic days.')}</p>
-        )}
       </Card>
 
       <SectionTitle>{t('Minutes per week')}</SectionTitle>

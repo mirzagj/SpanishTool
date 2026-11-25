@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkAnswer, diffChars, hintFor, normalize, shuffleWords, unscrambleWords } from './check'
+import { checkAnswer, diffChars, hintFor, normalize, phoneticKey, shuffleWords, unscrambleWords } from './check'
 
 const lenient = { accentStrict: false }
 const strict = { accentStrict: true }
@@ -92,5 +92,52 @@ describe('hintFor', () => {
   it('reveals letters progressively', () => {
     expect(hintFor('el partido', 1)).toBe('e· p······')
     expect(hintFor('el partido', 2)).toBe('el pa·····')
+  })
+})
+
+describe('lenient checking: synonyms, regional words, small slips', () => {
+  const g = { accentStrict: false }
+  const v = { accentStrict: false, mode: 'vocab' as const, articleLenient: true }
+  it('accepts a synonym for vocabulary, with a note', () => {
+    const r = checkAnswer('pues', ['bueno'], { ...v, synonyms: ['pues', 'entonces'] })
+    expect(r.verdict).toBe('correct')
+    expect(r.notes[0]).toMatchObject({ kind: 'synonym', to: 'bueno' })
+  })
+  it('accepts Spain / everyday variants in sentences, with a note', () => {
+    const r = checkAnswer('Se me olvidó el móvil en el coche', ['Se me olvidó el celular en el carro.'], g)
+    expect(r.verdict).toBe('correct')
+    expect(r.notes.map((n) => `${n.from}>${n.to}`)).toEqual(['móvil>celular', 'coche>carro'])
+    expect(checkAnswer('Mis padres viven en Rotterdam', ['Mis papás viven en Rotterdam.'], g).verdict).toBe('correct')
+    // a different gender still has to match its article
+    expect(checkAnswer('el computadora', ['la computadora'], g).verdict).not.toBe('correct')
+  })
+  it('gives partial credit for spelling slips that sound the same', () => {
+    expect(checkAnswer('estubo', ['estuvo'], g).verdict).toBe('almost')
+    expect(checkAnswer('conosco', ['conozco'], g).verdict).toBe('almost')
+    expect(checkAnswer('hiso', ['hizo'], g).verdict).toBe('almost')
+    const r = checkAnswer('Ayer fui al cine y bi una pelicula', ['Ayer fui al cine y vi una película.'], g)
+    expect(r.verdict).toBe('almost')
+    expect(r.notes[0]).toMatchObject({ kind: 'spelling', from: 'bi', to: 'vi' })
+  })
+  it('keeps real grammar mistakes wrong', () => {
+    expect(checkAnswer('fue', ['fui'], g).verdict).toBe('wrong') // person
+    expect(checkAnswer('iba', ['fui'], g).verdict).toBe('wrong') // tense
+    expect(checkAnswer('dijieron', ['dijeron'], g).verdict).toBe('wrong') // the trained irregularity
+    expect(checkAnswer('hablaba', ['hablé'], g).verdict).toBe('wrong')
+    expect(checkAnswer('Ayer fue al cine', ['Ayer fui al cine.'], g).verdict).toBe('wrong') // ending in a sentence
+  })
+  it('allows a typo in a longer sentence word, and any small slip in vocabulary', () => {
+    expect(checkAnswer('Estaba viendo la tele cuando entró mi hermnao', ['Estaba viendo la tele cuando entró mi hermano.'], g).verdict).toBe('almost')
+    expect(checkAnswer('el partdo', ['el partido'], v).verdict).toBe('almost')
+    expect(checkAnswer('la mesa', ['el partido'], v).verdict).toBe('wrong')
+  })
+  it('does not give partial credit in exact mode (unscramble / pairs)', () => {
+    expect(checkAnswer('estubo', ['estuvo'], { accentStrict: false, mode: 'exact' }).verdict).toBe('wrong')
+  })
+  it('sound-alike key', () => {
+    expect(phoneticKey('llegué')).toBe(phoneticKey('yegue'))
+    expect(phoneticKey('llegué')).not.toBe(phoneticKey('llegé'))
+    expect(phoneticKey('gente')).toBe(phoneticKey('jente'))
+    expect(phoneticKey('guerra')).not.toBe(phoneticKey('jerra'))
   })
 })

@@ -16,7 +16,7 @@ export function Drills({ day, onFinish, topics }: { day: DayRecord; onFinish: ()
   const t = useT()
   const [queue, setQueue] = useState<Exercise[] | null>(null)
   const [idx, setIdx] = useState(0)
-  const [score, setScore] = useState({ right: 0, total: 0 })
+  const [score, setScore] = useState({ right: 0, almost: 0, total: 0 })
   const started = useRef(false)
 
   const loadMore = async (n: number, exclude: Exercise[] = []) => {
@@ -43,19 +43,20 @@ export function Drills({ day, onFinish, topics }: { day: DayRecord; onFinish: ()
   const cur = queue[idx]
 
   const onNext = async (r: PracticeResult) => {
-    await recordDrill(cur, { correct: r.correct, answer: r.answer, prompt: exercisePrompt(cur, s.promptLang), today: day.date })
-    setScore((sc) => ({ right: sc.right + (r.correct ? 1 : 0), total: sc.total + 1 }))
+    await recordDrill(cur, { verdict: r.verdict, flags: r.flags, answer: r.answer, prompt: exercisePrompt(cur, s.promptLang), today: day.date })
+    setScore((sc) => ({ right: sc.right + (r.verdict === 'correct' ? 1 : 0), almost: sc.almost + (r.verdict === 'almost' ? 1 : 0), total: sc.total + 1 }))
     setIdx((i) => i + 1)
   }
 
   if (!cur) {
-    const pct = score.total ? Math.round((score.right / score.total) * 100) : 0
+    const pct = score.total ? Math.round(((score.right + score.almost / 2) / score.total) * 100) : 0
     return (
       <Card className="space-y-4 text-center">
         <p className="text-sm text-stone-500 dark:text-stone-400">{t('Round complete')}</p>
         <p className="text-4xl font-semibold tabular-nums">
           {score.right}/{score.total}
         </p>
+        {score.almost > 0 && <p className="-mt-2 text-sm text-amber-700 dark:text-amber-400">{t('+ {n} almost right', { n: score.almost })}</p>}
         <p className="text-[15px] text-stone-600 dark:text-stone-300">
           {pct >= 85 ? t('¡Muy bien! Solid.') : pct >= 60 ? t('Good work — your mistakes are now review cards.') : t('Tough round. Your mistakes go into tomorrow’s review.')}
         </p>

@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { checkAnswer, diffChars, hintFor, type CheckResult, type Seg } from '../lib/check'
+import { checkAnswer, diffChars, hintFor, type CheckFlag, type CheckResult, type Seg, type Verdict } from '../lib/check'
 import { db } from '../lib/db'
 import type { PracticeItem } from '../lib/items'
 import { addAlternative } from '../lib/practice'
@@ -10,7 +10,10 @@ import { Icon } from './Icon'
 import { Button, Chip, cx, inputCls } from './ui'
 
 export interface PracticeResult {
+  /** correct (or overridden); 'almost' answers are not correct but get partial credit */
   correct: boolean
+  verdict: Verdict
+  flags: CheckFlag[]
   answer: string
   overridden: boolean
   hintsUsed: number
@@ -122,11 +125,21 @@ export function PracticeCard({
 
   const check = () => {
     if (result || !answerText.trim()) return
-    setResult(checkAnswer(answerText, allAnswers, { accentStrict: s.accentStrict, articleLenient: item.articleLenient }))
+    setResult(
+      checkAnswer(answerText, allAnswers, { accentStrict: s.accentStrict, articleLenient: item.articleLenient, synonyms: item.synonyms, mode: item.checkMode ?? 'grammar' }),
+    )
   }
   const next = () => {
     if (!result) return
-    onNext({ correct: result.correct || overridden, answer: answerText, overridden, hintsUsed: hint, firstTry: !retry })
+    onNext({
+      correct: result.correct || overridden,
+      verdict: overridden ? 'correct' : result.verdict,
+      flags: result.flags,
+      answer: answerText,
+      overridden,
+      hintsUsed: hint,
+      firstTry: !retry,
+    })
   }
   const override = async () => {
     await addAlternative(item.key, answerText)
@@ -153,6 +166,7 @@ export function PracticeCard({
   }
 
   const good = !!result && (result.correct || overridden)
+  const almost = !!result && result.verdict === 'almost' && !overridden
   const showDiff = !!result && (!result.correct || result.accentWarning) && !overridden && item.mode !== 'pair'
   const diff = showDiff ? diffChars(answerText, result!.best) : null
   const otherAnswers = allAnswers.filter((a) => a !== result?.best)
@@ -290,20 +304,41 @@ export function PracticeCard({
           <div
             className={cx(
               'flex items-center gap-2 rounded-xl px-3.5 py-3 font-semibold',
-              good ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300',
+              good
+                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                : almost
+                  ? 'bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200'
+                  : 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300',
             )}
           >
-            <Icon name={good ? 'check' : 'x'} className="size-5" strokeWidth={3} />
-            {overridden
+            <Icon name={good ? 'check' : almost ? 'bulb' : 'x'} className="size-5" strokeWidth={good ? 3 : 2} />
+            {almost
+              ? t('Almost! A small spelling slip — counts as half right.')
+              : overridden
               ? t('Counted as correct — your answer is now accepted too.')
               : result.correct
                 ? result.accentWarning
                   ? t('Correct — mind the accents.')
-                  : t('Correct!')
+                  : result.flags.includes('synonym') || result.flags.includes('regional')
+                    ? t('Correct — another good option.')
+                    : t('Correct!')
                 : result.accentOnly
                   ? t('Only the accents are off (accents are required in your settings).')
                   : t('Not quite.')}
           </div>
+          {!overridden && result.notes.length > 0 && (
+            <ul className="space-y-1 rounded-xl bg-stone-100 px-3.5 py-2.5 text-[15px] dark:bg-stone-800/70">
+              {result.notes.map((n, i) => (
+                <li key={i} lang="es">
+                  {n.kind === 'spelling'
+                    ? t('Spelling: “{a}” → “{b}”', { a: n.from, b: n.to })
+                    : n.kind === 'synonym'
+                      ? t('“{a}” also fits here — this card practises “{b}”.', { a: n.from, b: n.to })
+                      : t('“{a}” is fine too — the answer uses “{b}”.', { a: n.from, b: n.to })}
+                </li>
+              ))}
+            </ul>
+          )}
           {result.articleWarning && !overridden && (
             <Note label={t('Gender')}>
               {t('Learn it with its article:')} <b lang="es">{result.best}</b>

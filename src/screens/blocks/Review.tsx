@@ -62,7 +62,7 @@ export function Review({ day, onFinish }: { day: DayRecord; onFinish: () => void
 
   const onNext = async (r: PracticeResult) => {
     if (!cur.retry) {
-      const q = !r.correct ? GRADE.wrong : r.hintsUsed > 0 ? GRADE.hard : GRADE.good
+      const q = r.verdict === 'wrong' ? GRADE.wrong : r.verdict === 'almost' || r.hintsUsed > 0 ? GRADE.hard : GRADE.good
       const fresh = (await db.cards.get(cur.card.id)) ?? cur.card
       await db.cards.put({ ...fresh, ...schedule(fresh, q, day.date) })
       if (cur.card.kind !== 'custom') {
@@ -73,13 +73,15 @@ export function Review({ day, onFinish }: { day: DayRecord; onFinish: () => void
           topic: cur.item.topic,
           source: cur.card.kind === 'vocab' ? 'vocab' : 'review',
           correct: r.correct,
+          score: r.verdict === 'correct' ? 1 : r.verdict === 'almost' ? 0.5 : 0,
+          flags: r.flags,
           answer: r.answer,
         })
       }
-      setScore((sc) => ({ right: sc.right + (r.correct ? 1 : 0), total: sc.total + 1 }))
+      setScore((sc) => ({ right: sc.right + (r.verdict === 'wrong' ? 0 : 1), total: sc.total + 1 }))
     }
     // a card you missed comes back once at the end of the session
-    if (!r.correct && !cur.retry) setQueue((q) => [...q!, { ...cur, retry: true }])
+    if (r.verdict === 'wrong' && !cur.retry) setQueue((q) => [...q!, { ...cur, retry: true }])
     setIdx((i) => i + 1)
   }
 

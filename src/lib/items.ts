@@ -1,5 +1,5 @@
 import { EXERCISE_BY_ID } from '../data/exercises'
-import { VOCAB_BY_ID } from '../data/vocab'
+import { VOCAB_BY_ID, synonymsFor } from '../data/vocab'
 import type { Exercise, TopicId, VocabItem } from '../data/types'
 import { unscrambleWords, shuffleWords } from './check'
 import type { Card } from './db'
@@ -21,6 +21,10 @@ export interface PracticeItem {
   /** Shown after answering (e.g. the full example sentence). */
   after?: string
   articleLenient?: boolean
+  /** Other words that also fit (vocabulary). */
+  synonyms?: string[]
+  /** How lenient the checker is: see CheckOptions.mode. */
+  checkMode?: 'grammar' | 'vocab' | 'exact'
   hints?: boolean
   long?: boolean
   topic?: TopicId
@@ -59,9 +63,9 @@ export function exerciseItem(e: Exercise, lang: 'nl' | 'en'): PracticeItem {
     case 'rewrite':
       return { ...base, instr: e.instr, long: true }
     case 'unscramble':
-      return { ...base, mode: 'unscramble', instr: 'Tap the words in the right order.', words: shuffleWords(unscrambleWords(e.answers[0]), e.id) }
+      return { ...base, mode: 'unscramble', checkMode: 'exact', instr: 'Tap the words in the right order.', words: shuffleWords(unscrambleWords(e.answers[0]), e.id) }
     case 'pair':
-      return { ...base, mode: 'pair', instr: 'Choose, and say why.', options: e.options }
+      return { ...base, mode: 'pair', checkMode: 'exact', instr: 'Choose, and say why.', options: e.options }
   }
 }
 
@@ -85,6 +89,8 @@ export function vocabItem(v: VocabItem, lang: 'nl' | 'en'): PracticeItem {
     after: full,
     spain: v.spain,
     articleLenient: true,
+    synonyms: synonymsFor(v),
+    checkMode: 'vocab',
     hints: true,
   }
 }
@@ -99,6 +105,7 @@ export function customItem(c: Card): PracticeItem {
     answers: c.answers ?? [],
     explain: c.explain,
     hints: true,
+    checkMode: (c.answers?.[0] ?? '').trim().includes(' ') ? 'grammar' : 'vocab',
     long: (c.answers?.[0]?.length ?? 0) > 25,
     topic: c.topic,
   }

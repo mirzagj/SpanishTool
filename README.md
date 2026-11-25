@@ -100,11 +100,32 @@ because they make the file big. Clearing your browser's site data deletes everyt
 ## Answer checking
 
 Answers are compared after ignoring case, extra spaces and punctuation (¿ ¡ . , etc.).
-Accents are optional by default: you get a reminder, but the answer counts. Turn on
-*Accents required* in Settings to make them count. Adding or leaving out a subject pronoun
-("Yo no sé" / "No sé") is accepted. Vocabulary accepts a missing article with a reminder to
-learn the gender. If you are sure your answer is right, tap **I was actually right**: it
-counts as correct and is accepted from then on.
+There are three results:
+
+- **Correct.** Accents are optional by default (you get a reminder; turn on *Accents required* to make
+  them count). Adding or leaving out a subject pronoun ("Yo no sé" / "No sé") is fine. Everyday and Spain
+  variants count too (*coche* = *carro*, *móvil* = *celular*, *padres* = *papás*…), with a note. On vocabulary
+  cards, another word from the deck with the same meaning counts (*pues* for *bueno*), and the note tells you
+  which word the card is training.
+- **Almost (half credit).** A small spelling slip, such as *estubo*, *conosco*, *hiso*, a swapped or missing
+  letter in a longer word, is pointed out but not marked fully wrong. Changed endings (*fue* for *fui*)
+  stay wrong, because they change tense or person, which is what the drills train.
+- **Wrong.** You see a diff of your answer and the closest correct one, plus the rule.
+
+If you are sure your answer is right, tap **I was actually right**: it counts as correct and is accepted from then on.
+
+## Mistake analysis
+
+**Progress** shows, from your answers in the last 60 days:
+- **What to work on next:** your weakest topics, why, and a *Practise* button for each.
+- **Your level per topic:** Needs work / Building / Good / Strong, based on your last 30 answers
+  per topic (almost-right counts as half), with a trend arrow.
+- **Your most common mistakes:** tense/mood choice, verb forms and endings, pronouns, prepositions,
+  articles and gender, word order, missing words, word choice, spelling, accents, vocabulary. Each comes with examples.
+- **Words you keep missing.**
+
+Each grammar page (Library → Grammar) also shows **Your results** for that topic. The analysis is
+automatic and approximate: it classifies each answer by comparing it with the closest correct answer.
 
 ## Adding your own content
 

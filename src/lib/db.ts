@@ -41,7 +41,14 @@ export interface Attempt {
   source: AttemptSource
   correct: boolean
   answer: string
+  /** 1 = right, 0.5 = almost (small slip), 0 = wrong. Older attempts only have `correct`. */
+  score?: number
+  /** What the checker was lenient about: accent, spelling, synonym, regional, article. */
+  flags?: string[]
 }
+
+/** Credit for an attempt (0–1). */
+export const scoreOf = (a: { score?: number; correct: boolean }) => a.score ?? (a.correct ? 1 : 0)
 
 export type CardKind = 'exercise' | 'vocab' | 'custom'
 export type CardSource = 'drill' | 'vocab' | 'writing' | 'call' | 'series' | 'speaking' | 'manual'
@@ -73,6 +80,8 @@ export interface Mistake {
   correct: string
   explain: string
   cardId?: string
+  /** A small slip (almost right): logged for the analysis, no review card. */
+  slip?: boolean
 }
 
 export interface Alt {

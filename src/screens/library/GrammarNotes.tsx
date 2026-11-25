@@ -9,6 +9,10 @@ import { db } from '../../lib/db'
 import { go } from '../../lib/hooks'
 import { useT } from '../../lib/i18n'
 import { topicAccuracy } from '../../lib/plan'
+import { LevelChip, TopicResults } from '../../components/Analysis'
+import { analyse } from '../../lib/analysis'
+import { addDays, todayStr } from '../../lib/dates'
+import { useMemo } from 'react'
 
 export function AccuracyChip({ acc, n }: { acc?: number; n?: number }) {
   const t = useT()
@@ -19,8 +23,10 @@ export function AccuracyChip({ acc, n }: { acc?: number; n?: number }) {
 
 export function GrammarNotes({ topic }: { topic?: string }) {
   const t = useT()
-  const attempts = useLiveQuery(() => db.attempts.where('source').anyOf('drill', 'review').toArray(), [])
+  const attempts = useLiveQuery(() => db.attempts.where('date').aboveOrEqual(addDays(todayStr(), -60)).toArray(), [])
+  const mistakes = useLiveQuery(() => db.mistakes.toArray(), [])
   const acc = topicAccuracy(attempts ?? [])
+  const analysis = useMemo(() => analyse(attempts ?? [], mistakes ?? []), [attempts, mistakes])
   const note = topic ? NOTE_BY_TOPIC[topic as TopicId] : undefined
 
   if (note) {
@@ -32,9 +38,12 @@ export function GrammarNotes({ topic }: { topic?: string }) {
         </button>
         <div className="mb-3 flex items-start justify-between gap-3">
           <h2 className="text-xl font-semibold">{t(meta.name)}</h2>
-          <AccuracyChip acc={acc[note.topic]?.acc} n={acc[note.topic]?.n} />
+          <LevelChip level={analysis.topics.find((r) => r.topic === note.topic)!.level} />
         </div>
         <p className="text-[15px] leading-relaxed text-stone-700 dark:text-stone-300">{note.summary}</p>
+
+        <SectionTitle>{t('Your results')}</SectionTitle>
+        <TopicResults r={analysis.topics.find((r) => r.topic === note.topic)!} />
 
         <SectionTitle>{t('Rules')}</SectionTitle>
         <Card>

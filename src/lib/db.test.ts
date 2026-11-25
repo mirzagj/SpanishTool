@@ -15,22 +15,33 @@ beforeEach(async () => {
 describe('drill results', () => {
   it('a wrong answer logs a mistake and creates a review card due tomorrow', async () => {
     const e = EXERCISES.find((x) => x.topic === 'pret-imp' && x.type === 'gap')!
-    await recordDrill(e, { correct: false, answer: 'fue', prompt: e.prompt, today: '2026-11-25' })
+    await recordDrill(e, { verdict: 'wrong', answer: 'fue', prompt: e.prompt, today: '2026-11-25' })
     const [m] = await db.mistakes.toArray()
     expect(m).toMatchObject({ source: 'drill', topic: 'pret-imp', wrong: 'fue', correct: e.answers[0] })
     const card = await db.cards.get(`ex:${e.id}`)
     expect(card).toMatchObject({ kind: 'exercise', refId: e.id, due: '2026-11-26' })
     expect(cardItem(card!, 'nl')?.answers).toEqual(e.answers)
     // the same exercise wrong again resets the existing card instead of duplicating it
-    await recordDrill(e, { correct: false, answer: 'fue', prompt: e.prompt, today: '2026-11-27' })
+    await recordDrill(e, { verdict: 'wrong', answer: 'fue', prompt: e.prompt, today: '2026-11-27' })
     expect(await db.cards.count()).toBe(1)
     expect((await db.cards.get(`ex:${e.id}`))!.lapses).toBe(1)
   })
   it('a right answer only records an attempt', async () => {
     const e = EXERCISES[0]
-    await recordDrill(e, { correct: true, answer: e.answers[0], prompt: e.prompt, today: '2026-11-25' })
+    await recordDrill(e, { verdict: 'correct', answer: e.answers[0], prompt: e.prompt, today: '2026-11-25' })
     expect(await db.attempts.count()).toBe(1)
     expect(await db.mistakes.count()).toBe(0)
+    expect(await db.cards.count()).toBe(0)
+  })
+})
+
+describe('almost right', () => {
+  it('logs a slip with half credit and no review card', async () => {
+    const e = EXERCISES.find((x) => x.answers[0] === 'estuvieron')!
+    await recordDrill(e, { verdict: 'almost', flags: ['spelling'], answer: 'estubieron', prompt: e.prompt, today: '2026-11-25' })
+    const [a] = await db.attempts.toArray()
+    expect(a).toMatchObject({ correct: false, score: 0.5, flags: ['spelling'] })
+    expect((await db.mistakes.toArray())[0]).toMatchObject({ slip: true, wrong: 'estubieron' })
     expect(await db.cards.count()).toBe(0)
   })
 })

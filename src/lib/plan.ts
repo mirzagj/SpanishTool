@@ -2,7 +2,7 @@ import { STRUCTURE_TOPICS, TOPICS } from '../data/topics'
 import type { TopicId } from '../data/types'
 import { THEMES } from '../data/vocab/themes'
 import { addDays, dayNumber, diffDays, weekdayIdx } from './dates'
-import { BLOCKS, LIGHT_BLOCKS, db, type Attempt, type BlockKind, type DayRecord } from './db'
+import { BLOCKS, LIGHT_BLOCKS, db, scoreOf, type Attempt, type BlockKind, type DayRecord } from './db'
 import { loadSettings, type Settings } from './settings'
 
 // ---------- curriculum ----------
@@ -60,7 +60,7 @@ export function topicAccuracy(attempts: Attempt[], window = 30): Record<string, 
   const out: Record<string, TopicAcc> = {}
   for (const [t, list] of Object.entries(by)) {
     const recent = list.sort((x, y) => x.ts - y.ts).slice(-window)
-    const correct = recent.filter((a) => a.correct).length
+    const correct = recent.reduce((sum, a) => sum + scoreOf(a), 0)
     out[t] = { n: recent.length, correct, acc: recent.length ? correct / recent.length : 0 }
   }
   return out

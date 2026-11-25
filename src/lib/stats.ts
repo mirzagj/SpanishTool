@@ -1,6 +1,6 @@
 import type { TopicId } from '../data/types'
 import { addDays, weekStart } from './dates'
-import type { Attempt, DayRecord, LogEntry } from './db'
+import { scoreOf, type Attempt, type DayRecord, type LogEntry } from './db'
 import { minutesPractised } from './plan'
 
 /** The last `n` week-start dates (Mondays) up to and including the current week. */
@@ -18,7 +18,7 @@ export function weeklyAccuracy(attempts: Attempt[], weeks: string[], topic?: Top
     const w = weekStart(a.date)
     const x = acc.get(w) ?? { n: 0, c: 0 }
     x.n++
-    if (a.correct) x.c++
+    x.c += scoreOf(a)
     acc.set(w, x)
   }
   return weeks.map((w) => {
