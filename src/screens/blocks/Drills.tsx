@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PracticeCard, type PracticeResult } from '../../components/Practice'
 import { Button, Card, Chip } from '../../components/ui'
 import { topicShort } from '../../data/topics'
-import type { Exercise } from '../../data/types'
+import type { Exercise, TopicId } from '../../data/types'
 import type { DayRecord } from '../../lib/db'
 import { exerciseItem, exercisePrompt } from '../../lib/items'
 import { loadContext } from '../../lib/plan'
@@ -10,7 +10,7 @@ import { recordDrill } from '../../lib/practice'
 import { buildDrillQueue } from '../../lib/select'
 import { useSettings } from '../../lib/settings'
 
-export function Drills({ day, onFinish }: { day: DayRecord; onFinish: () => void }) {
+export function Drills({ day, onFinish, topics }: { day: DayRecord; onFinish: () => void; topics?: TopicId[] }) {
   const s = useSettings()
   const [queue, setQueue] = useState<Exercise[] | null>(null)
   const [idx, setIdx] = useState(0)
@@ -21,7 +21,7 @@ export function Drills({ day, onFinish }: { day: DayRecord; onFinish: () => void
     const ctx = await loadContext(day.date)
     const q = buildDrillQueue({
       day,
-      reached: ctx.reached,
+      reached: topics ?? ctx.reached,
       attempts: ctx.attempts,
       acc: ctx.acc,
       count: n,
@@ -59,7 +59,7 @@ export function Drills({ day, onFinish }: { day: DayRecord; onFinish: () => void
         </p>
         <div className="flex flex-col gap-2">
           <Button size="lg" variant="success" icon="check" onClick={onFinish}>
-            Finish block
+            {topics ? 'Done' : 'Finish block'}
           </Button>
           <Button size="lg" variant="secondary" onClick={() => void loadMore(8, queue)}>
             Keep going (+8)

@@ -23,7 +23,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  promptLang: 'nl',
+  promptLang: 'en',
   accentStrict: false,
   theme: 'system',
   blockMinutes: { review: 8, drills: 12, vocab: 8, writing: 7, speaking: 10 },

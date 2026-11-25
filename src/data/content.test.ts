@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { normalize, unscrambleWords } from '../lib/check'
 import { EXERCISES, EXERCISES_BY_TOPIC } from './exercises'
 import { TOPICS } from './topics'
+import { VOCAB, VOCAB_BY_THEME } from './vocab'
+import { THEMES } from './vocab/themes'
 
 describe('grammar exercises', () => {
   it('has at least 25 exercises for every topic', () => {
@@ -72,6 +74,28 @@ describe('grammar exercises', () => {
       for (const a of e.answers) {
         if (a.includes('?')) expect(a.includes('¿'), a).toBe(true)
       }
+    }
+  })
+})
+
+describe('vocabulary', () => {
+  it('has at least 400 items, ~60 per theme', () => {
+    expect(VOCAB.length).toBeGreaterThanOrEqual(400)
+    for (const t of THEMES) expect(VOCAB_BY_THEME[t.id]?.length ?? 0, t.id).toBeGreaterThanOrEqual(55)
+  })
+  it('has unique ids and complete fields', () => {
+    expect(new Set(VOCAB.map((v) => v.id)).size).toBe(VOCAB.length)
+    for (const v of VOCAB) {
+      expect(v.es && v.nl && v.en && v.ex, v.es).toBeTruthy()
+    }
+  })
+  it('every example has a bracketed target equal to the word or an alternative', () => {
+    for (const v of VOCAB) {
+      const m = v.ex.match(/\[([^\]]+)\]/g)
+      expect(m?.length, v.ex).toBe(1)
+      const target = normalize(m![0].slice(1, -1), true)
+      const ok = [v.es, ...v.alts].map((a) => normalize(a, true))
+      expect(ok, `${v.es}: [${target}]`).toContain(target)
     }
   })
 })

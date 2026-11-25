@@ -2,12 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
 import { Icon, type IconName } from './components/Icon'
 import { cx } from './components/ui'
+import type { TopicId } from './data/types'
 import { BLOCKS, db, type BlockKind } from './lib/db'
 import { go, useRoute } from './lib/hooks'
 import { SettingsContext, withDefaults, type Settings } from './lib/settings'
 import { Bonus } from './screens/Bonus'
 import { Calendar } from './screens/Calendar'
 import { Library } from './screens/Library'
+import { PracticeTopic } from './screens/PracticeTopic'
 import { Progress } from './screens/Progress'
 import { Session } from './screens/Session'
 import { Settings as SettingsScreen } from './screens/Settings'
@@ -54,14 +56,15 @@ export default function App() {
 
   if (!settings) return null
 
-  const [top = 'today', sub] = route
-  const inSession = top === 'do' && BLOCKS.includes(sub as BlockKind)
+  const [top = 'today', sub, detail] = route
+  const inSession = (top === 'do' && BLOCKS.includes(sub as BlockKind)) || top === 'practice'
 
   let screen
-  if (inSession) screen = <Session key={sub} kind={sub as BlockKind} />
+  if (top === 'practice' && sub) screen = <PracticeTopic key={sub} topic={sub as TopicId} />
+  else if (inSession) screen = <Session key={sub} kind={sub as BlockKind} />
   else if (top === 'calendar') screen = <Calendar />
   else if (top === 'progress') screen = <Progress />
-  else if (top === 'library') screen = <Library sub={sub} />
+  else if (top === 'library') screen = <Library sub={sub} detail={detail} />
   else if (top === 'settings') screen = <SettingsScreen />
   else if (top === 'bonus') screen = <Bonus sub={sub} />
   else screen = <Today />

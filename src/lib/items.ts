@@ -1,3 +1,5 @@
+import { EXERCISE_BY_ID } from '../data/exercises'
+import { VOCAB_BY_ID } from '../data/vocab'
 import type { Exercise, TopicId, VocabItem } from '../data/types'
 import { unscrambleWords, shuffleWords } from './check'
 import type { Card } from './db'
@@ -100,4 +102,18 @@ export function customItem(c: Card): PracticeItem {
     long: (c.answers?.[0]?.length ?? 0) > 25,
     topic: c.topic,
   }
+}
+
+
+/** Practice item for a review card, or null if its source content no longer exists. */
+export function cardItem(c: Card, lang: 'nl' | 'en'): PracticeItem | null {
+  if (c.kind === 'exercise') {
+    const e = c.refId ? EXERCISE_BY_ID[c.refId] : undefined
+    return e ? { ...exerciseItem(e, lang), label: `Review · ${exerciseItem(e, lang).label}` } : null
+  }
+  if (c.kind === 'vocab') {
+    const v = c.refId ? VOCAB_BY_ID[c.refId] : undefined
+    return v ? vocabItem(v, lang) : null
+  }
+  return customItem(c)
 }
