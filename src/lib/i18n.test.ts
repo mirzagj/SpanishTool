@@ -44,7 +44,7 @@ describe('Spanish interface', () => {
       'improving', 'getting worse', 'steady',
       'Fill the gap', 'Translate', 'Rewrite', 'Unscramble', 'Choose & explain', 'Vocabulary',
       'From a series', 'From your call', 'From your writing', 'Your mistake',
-      'Type the missing word(s).', 'Translate into (Mexican) Spanish.', 'Tap the words in the right order.', 'Choose, and say why.',
+      'Type the missing word(s).', 'Build this sentence in Spanish:', 'Translate into (Mexican) Spanish.', 'Tap the words in the right order.', 'Choose, and say why.',
       'Fix the sentence (type the correct version):', 'Type the Spanish word',
       'All core blocks', 'Light day', 'Partly done', 'Nothing',
       'Mistakes', 'Vocabulary', 'Grammar', 'Voice memos', 'All', 'Drills', 'Writing', 'Calls', 'Speaking', 'Added',

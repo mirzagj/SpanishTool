@@ -113,3 +113,17 @@ describe('vocabulary synonyms', () => {
     expect(synonymsFor(find('atajar'))).not.toContain('ahorrar')
   })
 })
+
+import { EXERCISES as ALL_EX } from './exercises'
+import { MEANINGS, fullSentence, meaningOf } from './exercises/meaning'
+
+describe('English meanings', () => {
+  it('every exercise has an English meaning', () => {
+    const missing = ALL_EX.filter((e) => !meaningOf(e)).map((e) => fullSentence(e))
+    expect(missing).toEqual([])
+  })
+  it('no stale entries (each translation belongs to an exercise)', () => {
+    const used = new Set(ALL_EX.filter((e) => e.type !== 'translate').map(fullSentence))
+    expect(Object.keys(MEANINGS).filter((k) => !used.has(k))).toEqual([])
+  })
+})

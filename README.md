@@ -149,6 +149,9 @@ pr('Cuando era niño, ___ a la playa.', 'iba|fui', 'iba', 'Habit → imperfect.'
 'el partido | de wedstrijd | the match | Anoche vimos [el partido] en casa de Luis. | =un partido | ES: …'
 ```
 
+Every exercise also needs an English meaning in `src/data/exercises/meanings-*.ts` (`[spanish sentence, english]`, where the
+Spanish is the full sentence with the gap filled in). The tests tell you exactly which ones are missing.
+
 Exercise and vocabulary ids are content hashes, so reordering or appending never breaks
 your history. Grammar notes are in `src/data/notes.ts`, and writing and speaking prompts
 in `src/data/prompts.ts`. Interface translations are in `src/lib/i18n-es.ts`.

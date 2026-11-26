@@ -1,4 +1,5 @@
 import { EXERCISE_BY_ID } from '../data/exercises'
+import { meaningOf } from '../data/exercises/meaning'
 import { VOCAB_BY_ID, synonymsFor } from '../data/vocab'
 import type { Exercise, TopicId, VocabItem } from '../data/types'
 import { unscrambleWords, shuffleWords } from './check'
@@ -20,6 +21,10 @@ export interface PracticeItem {
   spain?: string
   /** Shown after answering (e.g. the full example sentence). */
   after?: string
+  /** English meaning of the sentence: shown after answering, or on request before. */
+  meaning?: string
+  /** The prompt is the English meaning (unscramble), so don't mark it as Spanish. */
+  promptNotSpanish?: boolean
   articleLenient?: boolean
   /** Other words that also fit (vocabulary). */
   synonyms?: string[]
@@ -40,7 +45,7 @@ const LABEL: Record<Exercise['type'], string> = {
 
 export function exercisePrompt(e: Exercise, lang: 'nl' | 'en'): string {
   if (e.type === 'translate') return (lang === 'nl' ? e.nl : e.en) ?? e.en ?? ''
-  if (e.type === 'unscramble') return 'Build the sentence'
+  if (e.type === 'unscramble') return meaningOf(e) ?? 'Build the sentence'
   return e.prompt
 }
 
@@ -54,6 +59,7 @@ export function exerciseItem(e: Exercise, lang: 'nl' | 'en'): PracticeItem {
     explain: e.explain,
     spain: e.spain,
     topic: e.topic,
+    meaning: e.type === 'translate' ? undefined : meaningOf(e),
   }
   switch (e.type) {
     case 'gap':
@@ -63,7 +69,14 @@ export function exerciseItem(e: Exercise, lang: 'nl' | 'en'): PracticeItem {
     case 'rewrite':
       return { ...base, instr: e.instr, long: true }
     case 'unscramble':
-      return { ...base, mode: 'unscramble', checkMode: 'exact', instr: 'Tap the words in the right order.', words: shuffleWords(unscrambleWords(e.answers[0]), e.id) }
+      return {
+        ...base,
+        mode: 'unscramble',
+        checkMode: 'exact',
+        instr: base.meaning ? 'Build this sentence in Spanish:' : 'Tap the words in the right order.',
+        promptNotSpanish: !!base.meaning,
+        words: shuffleWords(unscrambleWords(e.answers[0]), e.id),
+      }
     case 'pair':
       return { ...base, mode: 'pair', checkMode: 'exact', instr: 'Choose, and say why.', options: e.options }
   }

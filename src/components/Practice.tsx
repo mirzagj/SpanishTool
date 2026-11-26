@@ -112,6 +112,7 @@ export function PracticeCard({
   const [result, setResult] = useState<CheckResult | null>(null)
   const [overridden, setOverridden] = useState(false)
   const [hint, setHint] = useState(0)
+  const [showMeaning, setShowMeaning] = useState(false)
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
   const nextRef = useRef<HTMLButtonElement>(null)
 
@@ -196,11 +197,24 @@ export function PracticeCard({
         </div>
         {item.instr && <p className="mb-1 text-[15px] text-stone-600 dark:text-stone-300">{t(item.instr)}</p>}
         {item.prompt && (
-          <p className="text-[19px] leading-snug font-medium" lang="es">
-            <GapText text={item.prompt} />
+          <p className="text-[19px] leading-snug font-medium" lang={item.promptNotSpanish ? 'en' : 'es'}>
+            {item.promptNotSpanish ? `“${item.prompt}”` : <GapText text={item.prompt} />}
           </p>
         )}
         {item.sub && <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{item.sub}</p>}
+        {item.meaning && !item.promptNotSpanish && !result && (
+          showMeaning ? (
+            <p className="mt-1.5 text-[15px] text-stone-500 italic dark:text-stone-400">{item.meaning}</p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMeaning(true)}
+              className="mt-1.5 inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+            >
+              <Icon name="search" className="size-4" /> {t('Show meaning')}
+            </button>
+          )
+        )}
       </div>
 
       {item.mode === 'type' &&
@@ -356,6 +370,9 @@ export function PracticeCard({
             </Note>
           )}
           {item.mode === 'pair' && reason.trim() && <Note label={t('Your reason')}>{reason}</Note>}
+          {item.meaning && !item.promptNotSpanish && (
+            <Note label={t('Meaning')}>{item.meaning}</Note>
+          )}
           {item.after && (
             <Note label={t('Example')}>
               <span lang="es">{item.after}</span>

@@ -470,4 +470,8 @@ export const ES: Record<string, string> = {
   "missing or misplaced accents": "acentos que faltan o están mal puestos",
   "words you couldn't produce yet": "palabras que todavía no te salen",
   "answers with more than one difference": "respuestas con más de una diferencia",
+  // meanings
+  "Show meaning": "Ver significado",
+  "Meaning": "Significado",
+  "Build this sentence in Spanish:": "Construye esta frase en español:",
 }
