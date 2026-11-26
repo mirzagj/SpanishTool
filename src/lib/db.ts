@@ -95,8 +95,14 @@ export interface Writing {
   ts: number
   topic: TopicId
   prompt: string
+  /** What the prompt is: an idea to write about or a statement to react to (empty prompt = free writing). */
+  promptKind?: 'idea' | 'statement'
   text: string
   imported: number
+  /** "Use this word in a sentence" (optional). */
+  words?: { id: string; es: string; gloss: string; sentence: string }[]
+  /** Overall feedback imported from the AI reply. */
+  feedback?: { summary?: string; focus?: string[] }
 }
 
 export interface Recording {

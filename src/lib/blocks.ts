@@ -19,7 +19,7 @@ export function blockMeta(kind: BlockKind, day: DayRecord, due?: number, t: T = 
     case 'vocab':
       return { title: t('Active vocabulary'), icon: 'book', sub: t(THEME_NAME[day.theme]) }
     case 'writing':
-      return { title: t('Writing'), icon: 'feather', sub: t('4–6 sentences · {topic}', { topic: t(topicShort(day.topic)) }) }
+      return { title: t('Writing'), icon: 'feather', sub: t('Free writing') }
     case 'speaking':
       return day.call
         ? { title: t('Call with Mexican friend'), icon: 'phone', sub: t('Timer + save their corrections') }
