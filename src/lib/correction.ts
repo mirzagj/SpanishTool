@@ -23,7 +23,7 @@ export interface WordSentence {
  * Prompt for any AI chat. Free writing, overall feedback first, and only REAL mistakes count:
  * accents, capitals, punctuation, regional (Spain) variants and style are never errors.
  */
-export function buildCorrectionPrompt(opts: { text: string; words?: WordSentence[]; lang: 'nl' | 'en'; topic?: { kind: 'idea' | 'statement'; text: string } }): string {
+export function buildCorrectionPrompt(opts: { text: string; words?: WordSentence[]; lang: 'nl' | 'en'; topic?: { kind: 'idea' | 'statement' | 'translate'; text: string } }): string {
   const topicList = TOPICS.map((t) => `${t.id} (${t.name})`).join(', ')
   const lang = opts.lang === 'nl' ? 'Dutch' : 'English'
   const words = (opts.words ?? []).filter((w) => w.sentence.trim())
@@ -34,14 +34,21 @@ export function buildCorrectionPrompt(opts: { text: string; words?: WordSentence
   )
   if (text && opts.topic?.kind === 'statement') parts.push(`I gave my opinion on this statement: "${opts.topic.text}"`)
   if (text && opts.topic?.kind === 'idea') parts.push(`I wrote about: "${opts.topic.text}"`)
-  if (text) parts.push(`My text:\n"""\n${text}\n"""`)
+  const translating = opts.topic?.kind === 'translate' && !!text
+  if (translating) parts.push(`I translated this English text into Spanish:\n"""\n${opts.topic!.text}\n"""`)
+  if (text) parts.push(`${translating ? 'My translation' : 'My text'}:\n"""\n${text}\n"""`)
   if (words.length) {
     parts.push(`I also practised some new words, one sentence each:\n${words.map((w, i) => `${i + 1}. ${w.es} (${w.gloss}): "${w.sentence.trim()}"`).join('\n')}`)
   }
   parts.push(`How to correct me:
 - Only count REAL mistakes: grammar, a wrong word or meaning, or something a native speaker would find wrong or confusing.
 - These are NOT mistakes, so never put them in the mistakes list or the JSON: accents, capital letters, punctuation, ñ, Spain Spanish or other regional variants (they're correct Spanish), and anything that's just a matter of style. You may mention a few of them under "Optional tips".
-- Keep my style and my words. Don't rewrite things that are already fine.`)
+- Keep my style and my words. Don't rewrite things that are already fine.${
+    translating
+      ? `
+- It's a translation, but judge MEANING, not word for word: if I say the same thing with different but correct words or a different sentence structure, that's fine and NOT a mistake. Only count real Spanish mistakes, and places where my meaning differs from the English or something important is missing.`
+      : ''
+  }`)
   const steps: string[] = []
   steps.push(
     opts.topic?.kind === 'statement' && text
@@ -50,6 +57,7 @@ export function buildCorrectionPrompt(opts: { text: string; words?: WordSentence
   )
   if (text) steps.push('My text with only the real mistakes fixed.')
   steps.push('The real mistakes, numbered, one line each: what I wrote → better, and why.')
+  if (translating) steps.push('A natural Mexican translation of the English text, only for comparison (not as corrections).')
   if (words.length) steps.push('For each new word: did I use it correctly and naturally? If not, give a better sentence.')
   steps.push('Optional tips (max 3): more natural Mexican expressions, accent reminders or regional notes. Clearly marked as tips, not mistakes.')
   steps.push('Focus for next time: the 1–2 most important things for me to practise.')

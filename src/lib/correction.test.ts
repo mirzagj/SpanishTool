@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCorrectionPrompt, cleanCorrections, countSentences, parseCorrections } from './correction'
-import { SPEAKING_PROMPTS, WRITING_IDEAS, WRITING_STATEMENTS, speakingPromptFor } from '../data/prompts'
+import { SPEAKING_PROMPTS, WRITING_IDEAS, WRITING_STATEMENTS, WRITING_TRANSLATIONS, speakingPromptFor } from '../data/prompts'
 import { TOPICS } from '../data/topics'
 
 describe('correction prompt', () => {
@@ -20,6 +20,14 @@ describe('correction prompt', () => {
     const p = buildCorrectionPrompt({ text: 'No estoy de acuerdo.', lang: 'en', topic: { kind: 'statement', text: 'El VAR ha mejorado el futbol.' } })
     expect(p).toContain('I gave my opinion on this statement: "El VAR ha mejorado el futbol."')
     expect(p).toContain('reaction to my opinion')
+  })
+  it('judges translations on meaning, not word for word', () => {
+    const p = buildCorrectionPrompt({ text: 'El fin pasado fui a la boda de mi primo.', lang: 'en', topic: { kind: 'translate', text: "Last weekend I went to my cousin's wedding." } })
+    expect(p).toContain("I translated this English text into Spanish:")
+    expect(p).toContain("Last weekend I went to my cousin's wedding.")
+    expect(p).toContain('My translation:')
+    expect(p).toContain('judge MEANING, not word for word')
+    expect(p).toContain('natural Mexican translation')
   })
   it('works with only word sentences', () => {
     const p = buildCorrectionPrompt({ text: '', words: [{ es: 'platicar', gloss: 'to chat', sentence: 'Me gusta platicar.' }], lang: 'nl' })
@@ -94,6 +102,7 @@ describe('prompts', () => {
   it('has writing ideas', () => {
     expect(WRITING_IDEAS.length).toBeGreaterThanOrEqual(20)
     expect(WRITING_STATEMENTS.length).toBeGreaterThanOrEqual(20)
+    expect(WRITING_TRANSLATIONS.length).toBeGreaterThanOrEqual(20)
   })
   it('counts sentences', () => {
     expect(countSentences('Ayer fui al cine. Me gustó mucho! ¿Y tú? Ok')).toBe(3)

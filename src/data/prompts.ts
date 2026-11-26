@@ -62,6 +62,30 @@ export const WRITING_STATEMENTS: string[] = [
   'Antes de visitar un país, hay que conocer un poco de su historia.',
 ]
 
+/** Optional short English texts to translate (judged on meaning, not word for word). */
+export const WRITING_TRANSLATIONS: string[] = [
+  "Last weekend I went to my cousin's wedding in Puebla. The party lasted until three in the morning and everyone danced a lot. I was very tired the next day, but it was worth it.",
+  "When I was a kid, we spent every summer at my grandparents' house. My grandmother always made pancakes for breakfast. I really miss those summers.",
+  "I've been learning Spanish for a year. At first it was hard to understand people when they spoke fast, but now it's much easier. I hope to visit Mexico next year.",
+  'Yesterday I lost my phone on the bus. Luckily, a woman found it and called my sister. I bought her a coffee to say thank you.',
+  "If I had more free time, I would learn to cook Mexican food. My favourite dish is chiles en nogada, but it seems very complicated. Maybe a friend can teach me.",
+  "My boss asked me to finish the report before Friday. I told him I needed more time because the data wasn't ready. In the end he gave me until Monday.",
+  "I don't think working from home is always better. You save time, but you see your colleagues less. For me, two days at the office is the perfect balance.",
+  'We were watching the match when suddenly the power went out. Half the neighbourhood started shouting. When it came back, the other team had already scored.',
+  "Can you tell me how to get to the station? I've been walking for twenty minutes and I think I'm lost. Is it far from here?",
+  "My best friend is moving to Monterrey next month. I'm happy for her, but I'm going to miss her a lot. We've already planned to visit each other.",
+  "I want you to call me when you arrive. It doesn't matter if it's late. I just want to know that you got home safely.",
+  "Last night I couldn't sleep because the neighbours were having a party. I knocked on their door at one o'clock, but nobody opened. Today I'm exhausted.",
+  "It's important to drink enough water when it's hot. Many people forget and then they get a headache. I always carry a bottle with me.",
+  'The film was better than I expected. The story was based on real events and the actors were great. I would like to watch it again with subtitles.',
+  "When I finish my studies, I'm going to look for a job abroad. I'd prefer a country where they speak Spanish. That way I can practise every day.",
+  'My parents met at university in the eighties. My father was studying engineering and my mother was studying law. They got married three years later.',
+  "I forgot my keys at home, so I had to wait outside for an hour. It was raining and I didn't have an umbrella. Next time I'll leave a key with my neighbour.",
+  "Honestly, I don't like social media very much. I use it to talk to friends, but I spend too much time on it. This month I'm trying to use it less.",
+  "We need to buy tortillas, avocados and something to drink for tonight. Can you go to the shop? I'll start making the salsa in the meantime.",
+  'Although the hotel was cheap, the room was clean and the staff were very friendly. The best thing was the view of the sea. I would definitely go back.',
+]
+
 export const SPEAKING_PROMPTS: SpeakingPrompt[] = [
   sp('present-irregular', 'Describe tu rutina de la mañana, desde que te despiertas hasta que llegas al trabajo.', ['salgo, pongo, hago', 'me despierto, me visto', 'primero / luego / después']),
   sp('present-irregular', 'Preséntate a un grupo nuevo: a qué te dedicas, qué sabes hacer bien y qué conoces de México.', ['sé vs conozco', 'yo forms with -g-', 'me dedico a…']),

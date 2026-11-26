@@ -496,4 +496,8 @@ export const ES: Record<string, string> = {
   "An idea instead": "Mejor una idea",
   "I’ll write my own": "Escribo sobre otra cosa",
   "Give me a statement": "Dame una afirmación",
+  // translate option
+  "Translate into Spanish — same meaning, your own words.": "Tradúcelo al español — mismo significado, con tus propias palabras.",
+  "Something else": "Otra cosa",
+  "Translate a text": "Traducir un texto",
 }

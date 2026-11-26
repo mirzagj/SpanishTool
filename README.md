@@ -9,7 +9,7 @@ Every exercise makes you *produce* Spanish (type, rebuild or speak), and the con
 - Calendar: dark green = full day, light green = light day (the 20-minute minimum), yellow = partly done
 - 18 grammar topics, ~590 exercises, 430 vocabulary items in 7 themes, 18 grammar notes, 54 writing and 36 speaking prompts
 - Spaced repetition (SM-2) of your own mistakes and vocabulary (sentence cards, typed answers)
-- Free writing (with an optional idea or a statement to give your opinion on) plus optional "use this word in a sentence" → "Copy correction prompt" → paste the AI reply. You get overall feedback, and only real mistakes become review cards: accents, capitals, punctuation and Spain-vs-Mexico variants never count. Works with any AI chat, no API key.
+- Free writing (with an optional idea, a statement to give your opinion on, or a short English text to translate, judged on meaning rather than word for word) plus optional "use this word in a sentence" → "Copy correction prompt" → paste the AI reply. You get overall feedback, and only real mistakes become review cards: accents, capitals, punctuation and Spain-vs-Mexico variants never count. Works with any AI chat, no API key.
 - In-browser voice recording with an optional es-MX transcript, "redo worst sentence", and a weekly friend-call mode
 - Progress charts, bonus trackers (series, listening, reading), JSON backup and restore
 - Interface in English or Spanish; translation prompts in English or Dutch

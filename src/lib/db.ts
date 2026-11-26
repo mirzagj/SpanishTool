@@ -96,7 +96,7 @@ export interface Writing {
   topic: TopicId
   prompt: string
   /** What the prompt is: an idea to write about or a statement to react to (empty prompt = free writing). */
-  promptKind?: 'idea' | 'statement'
+  promptKind?: 'idea' | 'statement' | 'translate'
   text: string
   imported: number
   /** "Use this word in a sentence" (optional). */

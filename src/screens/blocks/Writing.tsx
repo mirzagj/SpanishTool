@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { Button, Card, Chip, SectionTitle, cx, inputCls } from '../../components/ui'
-import { WRITING_IDEAS, WRITING_STATEMENTS } from '../../data/prompts'
+import { WRITING_IDEAS, WRITING_STATEMENTS, WRITING_TRANSLATIONS } from '../../data/prompts'
 import { topicShort } from '../../data/topics'
 import { VOCAB_BY_ID, VOCAB_BY_THEME } from '../../data/vocab'
 import { copyText } from '../../lib/clipboard'
@@ -13,6 +13,8 @@ import { addMistakeWithCard } from '../../lib/practice'
 import { useSettings } from '../../lib/settings'
 
 type WordRow = NonNullable<WritingRow['words']>[number]
+type PromptKind = 'idea' | 'statement' | 'translate'
+const LISTS: Record<PromptKind, string[]> = { idea: WRITING_IDEAS, statement: WRITING_STATEMENTS, translate: WRITING_TRANSLATIONS }
 
 /** Three words to use in a sentence: recently learned ones from your deck, else from today's theme. */
 async function pickWords(theme: DayRecord['theme'], lang: 'nl' | 'en', exclude: string[] = []): Promise<WordRow[]> {
@@ -34,7 +36,7 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
   const existing = useLiveQuery(() => db.writings.where('date').equals(day.date).first().then((r) => r ?? null), [day.date])
   const [text, setText] = useState<string | null>(null)
   const [words, setWords] = useState<WordRow[]>([])
-  const [idea, setIdea] = useState<{ kind: 'idea' | 'statement'; text: string } | null>(null)
+  const [idea, setIdea] = useState<{ kind: PromptKind; text: string } | null>(null)
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
   const [reply, setReply] = useState('')
   const [parsed, setParsed] = useState<{ errors: (ImportedError & { on: boolean })[]; dropped: number } | null>(null)
@@ -74,9 +76,8 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
     setWords(next)
     void save({ words: next })
   }
-  const pick = (kind: 'idea' | 'statement') => {
-    const list = kind === 'idea' ? WRITING_IDEAS : WRITING_STATEMENTS
-    const options = list.filter((x) => x !== idea?.text)
+  const pick = (kind: PromptKind) => {
+    const options = LISTS[kind].filter((x) => x !== idea?.text)
     const next = { kind, text: options[Math.floor(Math.random() * options.length)] }
     setIdea(next)
     void save({ prompt: next.text, promptKind: kind })
@@ -134,31 +135,33 @@ export function Writing({ day, onFinish }: { day: DayRecord; onFinish: () => voi
         </p>
         {idea ? (
           <div className="rounded-xl bg-stone-100 px-3 py-2 dark:bg-stone-800">
-            {idea.kind === 'statement' && (
-              <p className="text-xs font-semibold tracking-wide text-stone-500 uppercase">{t('Do you agree? Give your opinion and say why.')}</p>
+            {idea.kind !== 'idea' && (
+              <p className="text-xs font-semibold tracking-wide text-stone-500 uppercase">
+                {idea.kind === 'statement' ? t('Do you agree? Give your opinion and say why.') : t('Translate into Spanish — same meaning, your own words.')}
+              </p>
             )}
-            <p className="text-[15px]" lang="es">
+            <p className="text-[15px]" lang={idea.kind === 'translate' ? 'en' : 'es'}>
               {idea.kind === 'statement' ? `«${idea.text}»` : idea.text}
             </p>
             <div className="mt-1 flex gap-4 text-sm">
               <button type="button" onClick={() => pick(idea.kind)} className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">
                 {t('Another')}
               </button>
-              <button type="button" onClick={() => pick(idea.kind === 'idea' ? 'statement' : 'idea')} className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">
-                {idea.kind === 'idea' ? t('A statement instead') : t('An idea instead')}
-              </button>
               <button type="button" onClick={clearIdea} className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">
-                {t('I’ll write my own')}
+                {t('Something else')}
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-x-5 gap-y-1">
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5">
             <button type="button" onClick={() => pick('idea')} className="inline-flex items-center gap-1 text-sm font-medium text-stone-600 dark:text-stone-300">
               <Icon name="bulb" className="size-4" /> {t('Need an idea?')}
             </button>
             <button type="button" onClick={() => pick('statement')} className="inline-flex items-center gap-1 text-sm font-medium text-stone-600 dark:text-stone-300">
               <Icon name="feather" className="size-4" /> {t('Give me a statement')}
+            </button>
+            <button type="button" onClick={() => pick('translate')} className="inline-flex items-center gap-1 text-sm font-medium text-stone-600 dark:text-stone-300">
+              <Icon name="book" className="size-4" /> {t('Translate a text')}
             </button>
           </div>
         )}
